@@ -29,7 +29,8 @@ Admin: http://localhost:8000/admin/ · Site: http://localhost:5173/
 |---|---|
 | `just dev` | Postgres + Django dev server (:8000) + SvelteKit dev server (:5173) |
 | `just test` | Backend pytest and frontend vitest |
-| `just lint` / `just fmt` | Ruff, ESLint, Prettier, svelte-check |
+| `just lint` | Ruff check, Prettier check, ESLint, svelte-check |
+| `just fmt` | Ruff format/fix and Prettier write |
 | `just e2e` | Playwright smoke test (needs `just backend` running) |
 | `just makemigrations` / `just migrate` | Django migrations |
 | `just up` / `just down` / `just logs` | Full production-like stack |
@@ -40,7 +41,7 @@ Admin: http://localhost:8000/admin/ · Site: http://localhost:5173/
 2. Set `SITE_DOMAIN` to your domain (DNS A/AAAA records must point at the server), a long `DJANGO_SECRET_KEY`, `DEBUG=false`, strong `POSTGRES_PASSWORD` and `DJANGO_SUPERUSER_PASSWORD`.
 3. `docker compose up -d --build`. Caddy obtains the HTTPS certificate automatically.
 4. Updates: `git pull && docker compose up -d --build`.
-5. Backups: the `pgdata` volume (database) and `media` volume (uploads). Example: `docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup.sql`.
+5. Backups: the `pgdata` volume (database) and `media` volume (uploads). Database example: `docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql` (runs inside the container, where those variables are set; your host shell does not have them). Media example: `docker run --rm -v carrotnclaw_media:/data -v "$PWD":/backup alpine tar czf /backup/media.tgz -C /data .` — Compose prefixes volume names with the project directory name, so check the real name first with `docker volume ls | grep media`.
 
 ## Editing content (for editors)
 
