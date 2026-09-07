@@ -3,11 +3,11 @@
 	import Picture from '$lib/components/Picture.svelte';
 
 	let { value }: { value: CardGridValue } = $props();
-	const cols = {
-		'2': 'md:grid-cols-2',
-		'3': 'md:grid-cols-3',
-		'4': 'md:grid-cols-2 lg:grid-cols-4'
-	}[value.columns];
+	const cols = $derived(
+		{ '2': 'md:grid-cols-2', '3': 'md:grid-cols-3', '4': 'md:grid-cols-2 lg:grid-cols-4' }[
+			value.columns
+		]
+	);
 </script>
 
 <div class="mx-auto grid max-w-6xl gap-6 px-4 py-6 {cols}">

@@ -9,7 +9,9 @@
 	const images = $derived(value.images.filter((i) => i !== null));
 
 	let embla: EmblaCarouselType | undefined = $state();
-	const plugins = value.autoplay ? [Autoplay({ delay: 5000, stopOnInteraction: true })] : [];
+	const plugins = $derived(
+		value.autoplay ? [Autoplay({ delay: 5000, stopOnInteraction: true })] : []
+	);
 
 	function onInit(event: CustomEvent<EmblaCarouselType>) {
 		embla = event.detail;
