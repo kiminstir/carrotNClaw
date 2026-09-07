@@ -29,6 +29,13 @@ def test_serialize_image_none():
     assert serialize_image(None) is None
 
 
+def test_serialize_image_narrow_source_has_no_duplicate_widths(db):
+    narrow = Image.objects.create(title="Narrow", file=get_test_image_file(size=(700, 500)))
+    data = serialize_image(narrow, alt="narrow")
+    assert [s["width"] for s in data["srcset"]] == [480, 700]
+    assert data["width"] == 700 and data["height"] == 500
+
+
 def test_api_image_block_uses_contextual_alt(image):
     block = ApiImageBlock()
     value = block.to_python({"image": image.pk, "decorative": False, "alt_text": "Roaring fire"})

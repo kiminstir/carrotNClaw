@@ -12,7 +12,8 @@ def absolute_media_url(path: str) -> str:
 def serialize_image(image, *, alt: str | None = None, widths=SRCSET_WIDTHS) -> dict | None:
     if image is None:
         return None
-    specs = [f"width-{w}|format-webp" for w in widths]
+    capped_widths = sorted({min(w, image.width) for w in widths})
+    specs = [f"width-{w}|format-webp" for w in capped_widths]
     renditions = image.get_renditions(*specs)
     ordered = [renditions[spec] for spec in specs]
     largest = ordered[-1]
