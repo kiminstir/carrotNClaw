@@ -2,6 +2,7 @@ import os
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.db import transaction
 from wagtail.blocks import StreamValue
 from wagtail.models import Page, Site
 
@@ -90,6 +91,7 @@ def stream(field, raw):
 class Command(BaseCommand):
     help = "Create the initial site tree, settings and superuser. Safe to run repeatedly."
 
+    @transaction.atomic
     def handle(self, *args, **options):
         self.ensure_superuser()
         home = self.ensure_home()
@@ -147,6 +149,16 @@ class Command(BaseCommand):
             site.save()
             if old_root.specific_class is Page:  # Wagtail's default "Welcome" page
                 old_root.delete()
+
+        # Self-healing: once the Site is (re)pointed at `home`, nothing should
+        # reference any other depth-2 page any more. Clean up any leftover
+        # plain Page (never a FlexPage) at depth 2 - e.g. a renamed default
+        # "Welcome" page left behind by a run that was interrupted before it
+        # could be deleted, on an older version of this command, or one
+        # recreated by hand.
+        for stray in Page.objects.filter(depth=2).exclude(pk=home.pk):
+            if stray.specific_class is Page:
+                stray.delete()
         return home
 
     def ensure_child(self, home, title, slug, body):

@@ -42,3 +42,17 @@ def test_bootstrap_without_superuser_env_skips_user(monkeypatch):
     monkeypatch.delenv("DJANGO_SUPERUSER_PASSWORD", raising=False)
     call_command("bootstrap_site")
     assert not get_user_model().objects.exists()
+
+
+@pytest.mark.django_db
+def test_bootstrap_self_heals_stray_depth_two_page():
+    call_command("bootstrap_site")
+
+    root = Page.get_first_root_node()
+    root.add_child(instance=Page(title="Stray", slug="stray"))
+
+    call_command("bootstrap_site")
+
+    home = FlexPage.objects.get(slug="home")
+    assert not Page.objects.filter(depth=2).exclude(pk=home.pk).exists()
+    assert FlexPage.objects.count() == 5
