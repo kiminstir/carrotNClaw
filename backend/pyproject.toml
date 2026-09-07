@@ -1,0 +1,38 @@
+[project]
+name = "carrot-and-claw-backend"
+version = "0.1.0"
+description = "Headless Wagtail CMS for the Carrot&Claw website"
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.1,<6.2",
+    "wagtail>=8.0,<8.1",
+    "djangorestframework>=3.18,<4",
+    "wagtail-headless-preview>=0.9,<1",
+    "django-environ>=0.12",
+    "psycopg[binary]>=3.2",
+    "gunicorn>=23",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-django>=4.14",
+    "ruff>=0.16",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+testpaths = ["apps", "tests"]
+addopts = "-ra --reuse-db"
