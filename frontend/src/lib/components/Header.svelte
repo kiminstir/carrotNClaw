@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import type { SiteSettings } from '$lib/api/types';
 	import Picture from './Picture.svelte';
 
@@ -12,9 +13,8 @@
 
 <header class="sticky top-0 z-40 border-b border-white/10 bg-surface/90 backdrop-blur">
 	<div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3">
-		<!-- eslint-disable svelte/no-navigation-without-resolve -- static home link -->
 		<a
-			href="/"
+			href={resolve('/')}
 			class="flex items-center gap-3 font-display text-xl tracking-wide"
 			onclick={() => (open = false)}
 		>
@@ -28,7 +28,6 @@
 			{/if}
 			<span>{header.site_title}</span>
 		</a>
-		<!-- eslint-enable svelte/no-navigation-without-resolve -->
 
 		<nav class="hidden gap-6 md:flex" aria-label="Main">
 			{#each header.menu as link (link.href + link.label)}
