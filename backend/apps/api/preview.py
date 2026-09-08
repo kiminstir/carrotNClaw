@@ -9,6 +9,7 @@ Vendored here per the project's Wagtail 8.0 API viewset conventions, with
 """
 
 from django.contrib.contenttypes.models import ContentType
+from django.http import Http404
 from rest_framework.response import Response
 from wagtail.api.v2.views import PagesAPIViewSet
 from wagtail_headless_preview.models import PagePreview
@@ -29,12 +30,23 @@ class PagePreviewAPIViewSet(PagesAPIViewSet):
         return Response(serializer.data)
 
     def get_object(self):
-        app_label, model = self.request.GET["content_type"].split(".")
-        content_type = ContentType.objects.get(app_label=app_label, model=model)
+        try:
+            app_label, model = self.request.GET["content_type"].split(".")
+        except ValueError as exc:
+            raise Http404("Malformed content_type.") from exc
 
-        page_preview = PagePreview.objects.get(
-            content_type=content_type, token=self.request.GET["token"]
-        )
+        try:
+            content_type = ContentType.objects.get(app_label=app_label, model=model)
+        except ContentType.DoesNotExist as exc:
+            raise Http404("Unknown content_type.") from exc
+
+        try:
+            page_preview = PagePreview.objects.get(
+                content_type=content_type, token=self.request.GET["token"]
+            )
+        except PagePreview.DoesNotExist as exc:
+            raise Http404("Unknown or expired preview token.") from exc
+
         page = page_preview.as_page()
         if not page.pk:
             # fake primary key to stop API URL routing from complaining

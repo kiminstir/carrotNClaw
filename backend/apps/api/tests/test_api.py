@@ -65,3 +65,15 @@ def test_preview_endpoint_serves_draft(client, site):
     assert response.status_code == 200
     assert response.json()["intro"] == "Draft intro, not yet published"
     assert FlexPage.objects.get(pk=page.pk).intro == ""
+
+
+def test_preview_endpoint_bad_token_is_404(client, site):
+    response = client.get(
+        "/api/v2/page_preview/1/", {"content_type": "pages.flexpage", "token": "bogus"}
+    )
+    assert response.status_code == 404
+
+
+def test_preview_endpoint_unknown_content_type_is_404(client, site):
+    response = client.get("/api/v2/page_preview/1/", {"content_type": "bogus", "token": "bogus"})
+    assert response.status_code == 404
