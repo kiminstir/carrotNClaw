@@ -91,7 +91,7 @@ p {
 	padding-bottom: clamp(3rem, 7vw, 6rem);
 }
 .site-shell.has-player {
-	padding-bottom: 5rem;
+	padding-bottom: 6rem;
 }
 .site-header {
 	position: sticky;
@@ -824,32 +824,172 @@ body:has(dialog[open]) {
 	color: #a5b69b;
 	font-size: 0.8rem;
 }
-.audio-player {
+/* Bard sign (AudioPlayer.svelte): a wooden plank hung on two chains from an iron bracket that
+   reaches in from the right edge of the screen. It glows and its equalizer moves while music
+   plays; it swings once each time playback starts. */
+.bard-sign {
 	position: fixed;
-	right: 1rem;
+	right: 0;
 	bottom: 1rem;
 	z-index: 50;
+	padding-right: 1rem;
+	color: var(--parchment);
+}
+.sign-bracket {
+	position: absolute;
+	top: 0;
+	left: 18%; /* just past the left chain, so both chains hang from it */
+	right: 0;
+	height: 4px;
+	background: linear-gradient(#5a4a3a, #2d251d);
+	border-radius: 2px 0 0 2px;
+	box-shadow: 0 1px 2px #0008;
+}
+.sign-bracket::before {
+	content: '';
+	position: absolute;
+	left: -3px;
+	top: -3px;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 35%, #7a6852, #2d251d);
+}
+.sign-hanging {
+	position: relative;
+	padding-top: 14px;
+	transform-origin: 50% 0;
+}
+.sign-chain {
+	position: absolute;
+	top: 2px;
+	width: 3px;
+	height: 14px;
+	background: repeating-linear-gradient(to bottom, #9c8a66 0 3px, #4a3f31 3px 5px);
+	border-radius: 1px;
+}
+.sign-chain-left {
+	left: 22%;
+}
+.sign-chain-right {
+	right: 22%;
+}
+.sign-plank {
 	display: flex;
 	align-items: center;
-	gap: 0.35rem;
-	padding: 0.5rem 0.75rem;
-	border: 1px solid #78916a;
-	border-radius: 5px;
-	background: var(--forest-deep);
-	color: var(--parchment);
-	box-shadow: 0 4px 20px #112e2326;
+	gap: 0.2rem;
+	padding: 0.4rem 0.6rem;
+	border: 1.5px solid #b58b57;
+	border-radius: 4px;
+	background: var(--wood-grain), var(--wood);
+	box-shadow:
+		inset 0 0 0 3px #171e1640,
+		0 10px 24px #00000066;
+	transition:
+		border-color 0.4s,
+		box-shadow 0.4s;
 }
-.audio-player button {
+.is-playing .sign-plank {
+	border-color: #d9b57d;
+	box-shadow:
+		inset 0 0 0 3px #171e1640,
+		0 10px 24px #00000066,
+		0 0 0 1px #d4af7933,
+		0 0 30px #d4af7959;
+}
+.sign-plank button {
 	display: grid;
 	place-items: center;
 	min-width: 44px;
 	min-height: 44px;
-	color: #d8e2bd;
+	color: #e7dcc0;
+	transition: color 0.2s;
 }
-.audio-player .play-toggle {
-	background: #d8e2bd;
-	color: var(--forest-deep);
+.sign-plank button:hover {
+	color: #fff4d6;
+}
+.sign-plank .play-toggle {
+	min-width: 40px;
+	min-height: 40px;
+	margin: 0 0.1rem;
 	border-radius: 50%;
+	background: linear-gradient(#cfa86f, #9a7444);
+	color: #2b2116;
+	box-shadow:
+		inset 0 1px 0 #ffe7b5aa,
+		0 2px 4px #0006;
+}
+.sign-plank .play-toggle:hover {
+	color: #1a140c;
+	background: linear-gradient(#dcb67c, #a67f4c);
+}
+.eq {
+	display: flex;
+	align-items: flex-end;
+	gap: 3px;
+	height: 18px;
+	margin: 0 0.35rem 0 0.2rem;
+}
+.eq-bar {
+	display: block;
+	width: 3px;
+	height: 18px;
+	border-radius: 1.5px;
+	background: var(--color-accent);
+	transform: scaleY(0.12);
+	transform-origin: 50% 100%;
+	transition: transform 0.35s ease;
+}
+.is-playing .eq-bar {
+	animation: eq-bounce var(--eq-duration) ease-in-out var(--eq-delay) infinite alternate;
+}
+.eq-bar:nth-child(1) {
+	--eq-duration: 0.72s;
+	--eq-delay: 0s;
+	--eq-rest: 0.55;
+}
+.eq-bar:nth-child(2) {
+	--eq-duration: 0.94s;
+	--eq-delay: -0.3s;
+	--eq-rest: 0.9;
+}
+.eq-bar:nth-child(3) {
+	--eq-duration: 0.61s;
+	--eq-delay: -0.15s;
+	--eq-rest: 0.4;
+}
+.eq-bar:nth-child(4) {
+	--eq-duration: 1.08s;
+	--eq-delay: -0.5s;
+	--eq-rest: 0.7;
+}
+@keyframes eq-bounce {
+	from {
+		transform: scaleY(0.15);
+	}
+	to {
+		transform: scaleY(1);
+	}
+}
+.is-swaying .sign-hanging {
+	animation: sign-sway 1.6s ease-in-out;
+}
+@keyframes sign-sway {
+	0% {
+		rotate: 0deg;
+	}
+	22% {
+		rotate: 1.6deg;
+	}
+	52% {
+		rotate: -1.1deg;
+	}
+	78% {
+		rotate: 0.5deg;
+	}
+	100% {
+		rotate: 0deg;
+	}
 }
 .audio-title {
 	min-width: 0;
@@ -857,8 +997,11 @@ body:has(dialog[open]) {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-size: 0.8rem;
-	padding: 0 0.4rem;
+	font-family: var(--font-display);
+	font-style: italic;
+	font-size: 0.9rem;
+	color: #f0e5c8;
+	padding: 0 0.45rem 0 0.1rem;
 }
 /* Scroll vine (ScrollVine.svelte, geometry in vine.ts): drawn down the left gutter as the page
    is scrolled, one leaf per content block. Only where the gutter exists. */
@@ -959,10 +1102,16 @@ body:has(dialog[open]) {
 	.footer-grid {
 		flex-direction: column;
 	}
-	.audio-player {
-		right: 0.5rem;
+	.bard-sign {
 		bottom: 0.5rem;
-		max-width: calc(100% - 1rem);
+		padding-right: 0.5rem;
+		max-width: 100%;
+	}
+	.sign-bracket {
+		display: none;
+	}
+	.sign-plank {
+		padding: 0.3rem 0.4rem;
 	}
 	.audio-title {
 		min-width: 0;
@@ -984,5 +1133,13 @@ body:has(dialog[open]) {
 	}
 	.is-open .open-dot {
 		animation: none;
+	}
+	.is-swaying .sign-hanging {
+		animation: none;
+	}
+	/* Still bars at mixed heights: shows that music is playing without the bounce. */
+	.is-playing .eq-bar {
+		animation: none;
+		transform: scaleY(var(--eq-rest));
 	}
 }

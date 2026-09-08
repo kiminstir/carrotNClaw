@@ -52,6 +52,17 @@ test('scroll vine stays out of the way on narrow screens', async ({ page }) => {
 	await expect(page.getByTestId('scroll-vine')).toBeHidden();
 });
 
+test('bard sign player shows its controls and a resting equalizer', async ({ page }) => {
+	await page.goto('/');
+	const player = page.getByTestId('audio-player');
+	await expect(player).toBeVisible();
+	await expect(player.locator('.eq-bar')).toHaveCount(4);
+	await expect(player.getByRole('button', { name: 'Play music' })).toBeVisible();
+	await expect(player.getByRole('button', { name: 'Previous track' })).toBeVisible();
+	await expect(player.getByRole('button', { name: 'Next track' })).toBeVisible();
+	await expect(player).not.toHaveClass(/is-playing/);
+});
+
 test('navigation is client-side so the layout (and audio player) persists', async ({ page }) => {
 	await page.goto('/');
 	await page
