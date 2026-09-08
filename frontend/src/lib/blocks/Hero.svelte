@@ -1,12 +1,16 @@
 <script lang="ts">
+	import { prefersReducedMotion } from 'svelte/motion';
 	import type { HeroValue } from '$lib/api/types';
 	import Picture from '$lib/components/Picture.svelte';
 	import Branch from '$lib/components/Branch.svelte';
 	import TavernMark from '$lib/components/TavernMark.svelte';
+	import { tilt } from '$lib/actions/tilt';
+	import { fireflies, fireflyStyle } from './fireflies';
 	let { value }: { value: HeroValue } = $props();
+	const motes = fireflies();
 </script>
 
-<div class="tavern-hero" class:has-image={!!value.background}>
+<div class="tavern-hero" class:has-image={!!value.background} use:tilt>
 	{#if value.background}
 		<Picture image={value.background} sizes="100vw" class="hero-background" priority />
 	{/if}
@@ -14,6 +18,15 @@
 		<Branch kind="oak" />
 		<Branch kind="willow" corner="bottom-right" />
 	</div>
+	{#if !prefersReducedMotion.current}
+		<!-- Lantern motes drifting through the scene; purely decorative, so they are dropped
+		     (not just frozen) when the visitor prefers reduced motion. -->
+		<div class="hero-motes" aria-hidden="true">
+			{#each motes as mote, i (i)}
+				<span class="mote" style={fireflyStyle(mote)}></span>
+			{/each}
+		</div>
+	{/if}
 	<div class="hero-copy">
 		<div class="hero-mark"><TavernMark /></div>
 		<h1>{value.heading}</h1>

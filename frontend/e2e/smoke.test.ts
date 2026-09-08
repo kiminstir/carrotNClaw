@@ -6,6 +6,28 @@ test('home renders CMS content', async ({ page }) => {
 	await expect(page.getByRole('navigation', { name: 'Main' }).first()).toContainText('About');
 });
 
+test('hero drifts lantern motes and leans its branches toward the pointer', async ({ page }) => {
+	await page.goto('/');
+	const hero = page.locator('.tavern-hero');
+	await expect(hero.locator('.mote')).toHaveCount(22);
+	await hero.hover({ position: { x: 10, y: 10 } });
+	await expect(hero).toHaveAttribute('style', /--tilt-x: -0\.\d+; --tilt-y: -0\.\d+/);
+	await page.mouse.move(0, 0); // leaves the hero (the header is in the way)
+	await expect(hero).toHaveAttribute('style', /--tilt-x: 0; --tilt-y: 0/);
+});
+
+test.describe('reduced motion', () => {
+	test.use({ reducedMotion: 'reduce' });
+
+	test('hero keeps still: no motes, no tilt', async ({ page }) => {
+		await page.goto('/');
+		const hero = page.locator('.tavern-hero');
+		await expect(hero.locator('.hero-motes')).toBeHidden();
+		await hero.hover({ position: { x: 10, y: 10 } });
+		await expect(hero).not.toHaveAttribute('style', /--tilt-x/);
+	});
+});
+
 test('navigation is client-side so the layout (and audio player) persists', async ({ page }) => {
 	await page.goto('/');
 	await page

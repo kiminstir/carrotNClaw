@@ -184,11 +184,16 @@ p {
 	object-fit: cover;
 	z-index: -3;
 }
+/* Photo tint: as dark as before behind the copy so the headline keeps its contrast, thinning
+   toward the edges so the scene shows through, and fading into the page along the bottom so
+   the hero does not end on a hard line. */
 .has-image::before {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: #112e23cc;
+	background:
+		linear-gradient(to bottom, transparent 80%, var(--color-surface)),
+		radial-gradient(ellipse 62% 72% at 50% 48%, #112e23e3 0%, #112e23c4 50%, #112e237a 100%);
 	z-index: -2;
 }
 .hero-arch {
@@ -198,6 +203,72 @@ p {
 	border-radius: 4px;
 	z-index: -1;
 	--branch-size: clamp(180px, 24vw, 320px);
+}
+/* The branches lean toward the pointer (tilt action sets --tilt-x/--tilt-y on the hero). The
+   oak in front moves with the cursor, the willow behind moves against it, so they read as two
+   depths. `translate` composes with the corner rotation Branch.svelte applies via transform. */
+.hero-arch .botanical {
+	transition: translate 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hero-arch .botanical--top-left {
+	translate: calc(var(--tilt-x, 0) * 14px) calc(var(--tilt-y, 0) * 10px);
+}
+.hero-arch .botanical--bottom-right {
+	translate: calc(var(--tilt-x, 0) * -7px) calc(var(--tilt-y, 0) * -5px);
+}
+/* Lantern motes: warm specks that wander upward and pulse, spread along the edges and the
+   lower band (see fireflies.ts). Only translate and opacity animate, so they stay composited. */
+.hero-motes {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	overflow: hidden;
+	pointer-events: none;
+}
+.mote {
+	position: absolute;
+	left: var(--x);
+	top: var(--y);
+	width: var(--size);
+	height: var(--size);
+	border-radius: 50%;
+	background: #ffe2a3;
+	box-shadow:
+		0 0 calc(var(--size) * 1.5) calc(var(--size) * 0.5) #f2c66f8c,
+		0 0 calc(var(--size) * 5) calc(var(--size) * 0.5) #d4af7933;
+	opacity: 0;
+	animation:
+		mote-wander var(--duration) ease-in-out var(--delay) infinite alternate,
+		mote-glow calc(var(--duration) / 3.7) ease-in-out var(--delay) infinite;
+}
+@keyframes mote-wander {
+	from {
+		translate: 0 0;
+	}
+	35% {
+		translate: calc(var(--drift) * 0.7) calc(var(--drift) * -0.8);
+	}
+	65% {
+		translate: calc(var(--drift) * -0.4) calc(var(--drift) * -1.5);
+	}
+	to {
+		translate: var(--drift) calc(var(--drift) * -2.2);
+	}
+}
+@keyframes mote-glow {
+	0%,
+	100% {
+		opacity: 0;
+	}
+	20% {
+		opacity: 0.95;
+	}
+	45% {
+		opacity: 0.3;
+	}
+	70% {
+		opacity: 0.8;
+	}
 }
 .hero-copy {
 	max-width: 770px;
@@ -833,5 +904,8 @@ body:has(dialog[open]) {
 	}
 	.tavern-button:hover {
 		transform: none;
+	}
+	.hero-motes {
+		display: none;
 	}
 }
