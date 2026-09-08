@@ -1,5 +1,7 @@
+from unittest.mock import patch
+
 import pytest
-from wagtail.images.models import Image
+from wagtail.images.models import Image, SourceImageIOError
 from wagtail.images.tests.utils import get_test_image_file
 
 from apps.pages.blocks import ApiImageBlock
@@ -27,6 +29,11 @@ def test_serialize_image_returns_srcset_and_dimensions(image):
 
 def test_serialize_image_none():
     assert serialize_image(None) is None
+
+
+def test_serialize_image_missing_source_file_returns_none(image):
+    with patch.object(Image, "get_renditions", side_effect=SourceImageIOError("missing")):
+        assert serialize_image(image, alt="A cozy hall") is None
 
 
 def test_serialize_image_narrow_source_has_no_duplicate_widths(db):
