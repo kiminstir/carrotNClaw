@@ -6,7 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent  # backend/
 REPO_DIR = BASE_DIR.parent
 
 env = environ.Env(DEBUG=(bool, False))
-environ.Env.read_env(REPO_DIR / ".env")
+if (REPO_DIR / ".env").exists():
+    environ.Env.read_env(REPO_DIR / ".env")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DEBUG")
