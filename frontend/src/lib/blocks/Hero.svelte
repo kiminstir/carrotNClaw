@@ -1,35 +1,34 @@
 <script lang="ts">
 	import type { HeroValue } from '$lib/api/types';
 	import Picture from '$lib/components/Picture.svelte';
-
+	import Branch from '$lib/components/Branch.svelte';
+	import TavernMark from '$lib/components/TavernMark.svelte';
 	let { value }: { value: HeroValue } = $props();
 </script>
 
-<section
-	class="relative isolate flex min-h-[60vh] items-center justify-center overflow-hidden text-center"
->
+<div class="tavern-hero" class:has-image={!!value.background}>
 	{#if value.background}
-		<Picture
-			image={value.background}
-			sizes="100vw"
-			class="absolute inset-0 -z-10 h-full w-full object-cover opacity-40"
-			priority
-		/>
-	{:else}
-		<div class="absolute inset-0 -z-10 bg-gradient-to-b from-surface-2 to-surface"></div>
+		<Picture image={value.background} sizes="100vw" class="hero-background" priority />
 	{/if}
-	<div class="max-w-3xl px-4 py-20">
-		<h1 class="font-display text-4xl md:text-6xl">{value.heading}</h1>
-		{#if value.subheading}<p class="mt-4 text-lg text-muted md:text-xl">{value.subheading}</p>{/if}
+	<div class="hero-arch" aria-hidden="true">
+		<Branch kind="oak" />
+		<Branch kind="willow" corner="bottom-right" />
+	</div>
+	<div class="hero-copy">
+		<div class="hero-mark"><TavernMark /></div>
+		<h1>{value.heading}</h1>
+		{#if value.subheading}<p>{value.subheading}</p>{/if}
 		{#if value.cta}
-			<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from CMS data, not a typed route -->
+			<!-- eslint-disable svelte/no-navigation-without-resolve -- CMS-managed link -->
 			<a
 				href={value.cta.href}
-				class="mt-8 inline-block rounded-full bg-accent px-6 py-3 font-semibold text-surface transition-transform hover:scale-105"
+				target={value.cta.external ? '_blank' : undefined}
+				rel={value.cta.external ? 'noopener' : undefined}
+				class="tavern-button"
 			>
-				{value.cta.label}
+				{value.cta.label}<span aria-hidden="true">↗</span>
 			</a>
 			<!-- eslint-enable svelte/no-navigation-without-resolve -->
 		{/if}
 	</div>
-</section>
+</div>

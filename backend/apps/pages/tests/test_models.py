@@ -21,7 +21,7 @@ def test_flexpage_body_api_representation():
         "About",
         "about",
         [
-            {"type": "rich_text", "value": "<p>Welcome, traveller.</p>"},
+            {"type": "rich_text", "value": {"text": "<p>Welcome, traveller.</p>"}},
             {
                 "type": "collapse",
                 "value": {
@@ -34,5 +34,7 @@ def test_flexpage_body_api_representation():
     page.refresh_from_db()
     data = page.body.stream_block.get_api_representation(page.body, context={})
     assert [item["type"] for item in data] == ["rich_text", "collapse"]
+    assert data[0]["value"]["text"] == "<p>Welcome, traveller.</p>"
+    assert data[0]["value"]["color"] == "default"
     assert data[1]["value"]["items"][0]["title"] == "Hours"
     assert page.api_fields and [f.name for f in page.api_fields] == ["intro", "body"]

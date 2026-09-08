@@ -9,9 +9,9 @@
 <p class="bg-accent-2 px-4 py-1 text-center text-sm">Preview — unpublished changes</p>
 
 {#if data.page.body[0]?.type !== 'hero'}
-	<header class="mx-auto max-w-6xl px-4 pt-12 pb-4">
-		<h1 class="font-display text-4xl md:text-5xl">{data.page.title}</h1>
-		{#if data.page.intro}<p class="mt-3 max-w-2xl text-lg text-muted">{data.page.intro}</p>{/if}
+	<header class="page-heading">
+		<h1>{data.page.title}</h1>
+		{#if data.page.intro}<p>{data.page.intro}</p>{/if}
 	</header>
 {/if}
 

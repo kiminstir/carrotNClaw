@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 260" fill="none">
+ <defs><g id="ivy"><path d="M0 0C-3-8-15-8-23-13L-14-25L-19-38L-4-34L5-49L13-31L28-33L20-18L24-8C13-8 7-4 0 0Z" fill="#3d6248" stroke="#78936a" stroke-width=".9"/><path d="M0 0L5-39M2-15L-12-28M2-15L17-24" stroke="#9cab7a" stroke-width=".7"/></g></defs>
+ <g transform="translate(20 20) scale(.846153846)">
+ <path d="M22 248C58 218 22 188 36 160C60 115 21 91 39 58C54 30 94 47 124 34C160 18 177 44 214 30L250 21" stroke="#698354" stroke-width="2.2" stroke-linecap="round"/>
+ <path d="M35 200C62 193 60 173 48 175C39 177 48 188 56 183M36 103C13 96 12 76 20 76C30 76 23 88 17 83M153 31C150 56 175 61 174 49C173 41 162 46 168 51M215 30Q236 58 246 38" stroke="#9a9060" stroke-width="1.1" stroke-linecap="round"/>
+ <g stroke="#698354" stroke-width="1.2"><path d="M34 221L18 210M37 174L55 160M40 139L22 127M35 86L52 73M54 43L59 23M93 42L101 60M130 32L135 17M185 34L192 53M224 28L232 15"/></g>
+ <use href="#ivy" transform="translate(18 210) rotate(-38) scale(.48)"/><use href="#ivy" transform="translate(55 160) rotate(64) scale(.7)"/>
+ <use href="#ivy" transform="translate(22 127) rotate(-43) scale(.58)"/><use href="#ivy" transform="translate(52 73) rotate(68) scale(.8)"/>
+ <use href="#ivy" transform="translate(59 23) rotate(-18) scale(.56)"/><use href="#ivy" transform="translate(101 60) rotate(153) scale(.67)"/>
+ <use href="#ivy" transform="translate(135 17) rotate(57) scale(.45)"/><use href="#ivy" transform="translate(192 53) rotate(146) scale(.64)"/>
+ <use href="#ivy" transform="translate(232 15) rotate(65) scale(.42)"/>
+ </g>
+</svg>

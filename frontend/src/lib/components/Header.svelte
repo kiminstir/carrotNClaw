@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import type { SiteSettings } from '$lib/api/types';
 	import Picture from './Picture.svelte';
+	import TavernMark from './TavernMark.svelte';
 
 	let { header }: { header: SiteSettings['header'] } = $props();
 	let open = $state(false);
@@ -11,13 +12,18 @@
 		page.url.pathname.replace(/\/$/, '') === href.replace(/\/$/, '');
 </script>
 
-<header class="sticky top-0 z-40 border-b border-white/10 bg-surface/90 backdrop-blur">
-	<div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3">
-		<a
-			href={resolve('/')}
-			class="flex items-center gap-3 font-display text-xl tracking-wide"
-			onclick={() => (open = false)}
-		>
+<svelte:window
+	onkeydown={(event) => {
+		if (event.key === 'Escape' && open) {
+			open = false;
+			document.querySelector<HTMLButtonElement>('.menu-toggle')?.focus();
+		}
+	}}
+/>
+
+<header class="site-header">
+	<div class="header-inner">
+		<a href={resolve('/')} class="brand" onclick={() => (open = false)}>
 			{#if header.logo}
 				<Picture
 					image={header.logo}
@@ -25,11 +31,13 @@
 					class="h-10 w-10 rounded-full object-cover"
 					priority
 				/>
+			{:else}
+				<span class="brand-mark"><TavernMark /></span>
 			{/if}
 			<span>{header.site_title}</span>
 		</a>
 
-		<nav class="hidden gap-6 md:flex" aria-label="Main">
+		<nav class="desktop-nav" aria-label="Main">
 			{#each header.menu as link (link.href + link.label)}
 				<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from CMS data, not a typed route -->
 				<a
@@ -37,7 +45,7 @@
 					target={link.external ? '_blank' : undefined}
 					rel={link.external ? 'noopener' : undefined}
 					aria-current={isCurrent(link.href) ? 'page' : undefined}
-					class="text-muted transition-colors hover:text-accent aria-[current=page]:text-ink"
+					class="nav-link"
 				>
 					{link.label}
 				</a>
@@ -46,7 +54,7 @@
 		</nav>
 
 		<button
-			class="md:hidden"
+			class="menu-toggle"
 			aria-expanded={open}
 			aria-controls="mobile-nav"
 			onclick={() => (open = !open)}
@@ -66,14 +74,18 @@
 	</div>
 
 	{#if open}
-		<nav
-			id="mobile-nav"
-			class="flex flex-col gap-2 border-t border-white/10 px-4 py-3 md:hidden"
-			aria-label="Main"
-		>
+		<nav id="mobile-nav" class="mobile-nav" aria-label="Main">
 			{#each header.menu as link (link.href + link.label)}
-				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from CMS data, not a typed route -->
-				<a href={link.href} class="py-2 text-lg" onclick={() => (open = false)}>{link.label}</a>
+				<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from CMS data, not a typed route -->
+				<a
+					href={link.href}
+					class="nav-link"
+					aria-current={isCurrent(link.href) ? 'page' : undefined}
+					target={link.external ? '_blank' : undefined}
+					rel={link.external ? 'noopener' : undefined}
+					onclick={() => (open = false)}>{link.label}</a
+				>
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			{/each}
 		</nav>
 	{/if}

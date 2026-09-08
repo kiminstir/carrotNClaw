@@ -14,16 +14,21 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-<div class="flex min-h-dvh flex-col">
+<a href="#main-content" class="skip-link">Skip to content</a>
+<div class="site-shell" class:has-player={showPlayer}>
 	<Header header={data.settings.header} />
 
 	{#key page.url.pathname}
-		<main class="flex-1" in:fade={{ duration: prefersReducedMotion.current ? 0 : 200 }}>
+		<main
+			id="main-content"
+			tabindex="-1"
+			in:fade={{ duration: prefersReducedMotion.current ? 0 : 200 }}
+		>
 			{@render children()}
 		</main>
 	{/key}
 
-	<Footer footer={data.settings.footer} />
+	<Footer footer={data.settings.footer} siteTitle={data.settings.header.site_title} />
 
 	{#if showPlayer}
 		<AudioPlayer music={data.settings.music} />

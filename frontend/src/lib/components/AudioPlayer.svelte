@@ -82,32 +82,25 @@
 	onerror={handleError}
 ></audio>
 
-<div
-	data-testid="audio-player"
-	class="fixed right-4 bottom-4 z-50 flex items-center gap-2 rounded-full border border-white/10 bg-surface-2/95 px-3 py-2 shadow-lg backdrop-blur"
->
-	<button
-		onclick={() => skip(-1)}
-		aria-label="Previous track"
-		class="px-1 text-muted hover:text-ink">‹</button
-	>
-	<button
-		onclick={toggle}
-		aria-label={playing ? 'Pause music' : 'Play music'}
-		class="rounded-full bg-accent px-3 py-1 font-semibold text-surface"
-	>
+<div data-testid="audio-player" class="audio-player">
+	<button onclick={() => skip(-1)} aria-label="Previous track">‹</button>
+	<button onclick={toggle} aria-label={playing ? 'Pause music' : 'Play music'} class="play-toggle">
 		{playing ? '❚❚' : '▶'}
 	</button>
-	<button onclick={() => skip(1)} aria-label="Next track" class="px-1 text-muted hover:text-ink"
-		>›</button
-	>
-	<span class="max-w-40 truncate text-sm text-muted" title={track.title}>{track.title}</span>
-	<button
-		onclick={toggleMute}
-		aria-pressed={muted}
-		aria-label="Mute"
-		class="px-1 text-muted hover:text-ink"
-	>
-		{muted ? '🔇' : '🔊'}
+	<button onclick={() => skip(1)} aria-label="Next track">›</button>
+	<span class="audio-title" title={track.title}>{track.title}</span>
+	<button onclick={toggleMute} aria-pressed={muted} aria-label="Mute">
+		<svg
+			width="19"
+			height="19"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="1.5"
+			aria-hidden="true"
+			><path d="M11 5L6 9H3V15H6L11 19Z" />{#if muted}<path
+					d="M16 9L22 15M22 9L16 15"
+				/>{:else}<path d="M15 8Q19 12 15 16M18 5Q25 12 18 19" />{/if}</svg
+		>
 	</button>
 </div>

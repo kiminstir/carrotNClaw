@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from wagtail import blocks
 from wagtail.embeds.blocks import EmbedBlock
 from wagtail.embeds.embeds import get_embed
@@ -19,6 +20,45 @@ RICH_TEXT_FEATURES = [
     "blockquote",
     "image",
 ]
+
+
+# Keys are consumed by frontend/src/lib/blocks/richTextStyles.ts; keep both in sync.
+TEXT_COLOR_CHOICES = [
+    ("default", "Default"),
+    ("ink", "Light"),
+    ("accent", "Gold"),
+    ("sage", "Sage"),
+]
+TEXT_SIZE_CHOICES = [("sm", "Small"), ("md", "Normal"), ("lg", "Large")]
+LINE_HEIGHT_CHOICES = [("tight", "Tight"), ("normal", "Normal"), ("relaxed", "Relaxed")]
+TEXT_ALIGN_CHOICES = [("left", "Left"), ("center", "Center"), ("right", "Right")]
+VERTICAL_ALIGN_CHOICES = [("top", "Top"), ("center", "Center"), ("bottom", "Bottom")]
+
+
+class StyledRichTextBlock(blocks.StructBlock):
+    """Rich text plus block-wide typography settings.
+
+    Defaults reproduce the look a plain RichTextBlock had before these
+    settings existed, so content migrated from that shape renders unchanged.
+    """
+
+    text = blocks.RichTextBlock(features=RICH_TEXT_FEATURES)
+    color = blocks.ChoiceBlock(choices=TEXT_COLOR_CHOICES, default="default", label="Text color")
+    size = blocks.ChoiceBlock(choices=TEXT_SIZE_CHOICES, default="md", label="Font size")
+    line_height = blocks.ChoiceBlock(
+        choices=LINE_HEIGHT_CHOICES, default="normal", label="Line spacing"
+    )
+    align = blocks.ChoiceBlock(choices=TEXT_ALIGN_CHOICES, default="left", label="Alignment")
+    vertical_align = blocks.ChoiceBlock(
+        choices=VERTICAL_ALIGN_CHOICES,
+        default="top",
+        label="Vertical alignment",
+        help_text="How the text lines up with an image aligned left or right.",
+    )
+
+    class Meta:
+        icon = "pilcrow"
+        label = "Rich text"
 
 
 class ApiImageBlock(ImageBlock):
@@ -108,17 +148,49 @@ class HeroBlock(blocks.StructBlock):
         label = "Hero"
 
 
+# The pop-up shows the card's own image slot; inline images would duplicate it.
+CARD_DESCRIPTION_FEATURES = [f for f in RICH_TEXT_FEATURES if f != "image"]
+
+
 class CardBlock(blocks.StructBlock):
-    image = ApiImageBlock(required=False)
+    image = ApiImageBlock(
+        required=False,
+        help_text="In the Photo style the image is cropped to the card; set a focal point on "
+        "the image to choose which part stays in view.",
+    )
     title = blocks.CharBlock(max_length=120)
     subtitle = blocks.CharBlock(required=False, max_length=120)
     text = blocks.TextBlock(required=False)
     price = blocks.CharBlock(required=False, max_length=40)
     link = LinkBlock(required=False)
+    description = blocks.RichTextBlock(
+        required=False,
+        features=CARD_DESCRIPTION_FEATURES,
+        help_text="When filled in, the card opens a pop-up with this text and the image.",
+    )
+    detail_image = ApiImageBlock(
+        required=False,
+        label="Pop-up image",
+        help_text="Shown in the pop-up instead of the card image. Only visible when a "
+        "description is set.",
+    )
+
+
+# Keys are consumed by frontend/src/lib/blocks/CardGrid.svelte; keep both in sync.
+CARD_STYLE_CHOICES = [
+    ("artwork", "Artwork above text (menu items)"),
+    ("portrait", "Photo filling the card, text over the bottom (staff)"),
+]
 
 
 class CardGridBlock(blocks.StructBlock):
     columns = blocks.ChoiceBlock(choices=[("2", "2"), ("3", "3"), ("4", "4")], default="3")
+    style = blocks.ChoiceBlock(
+        choices=CARD_STYLE_CHOICES,
+        default="artwork",
+        help_text="Artwork shows cut-out images whole; Photo crops the image to a portrait "
+        "card around its focal point.",
+    )
     cards = blocks.ListBlock(CardBlock())
 
     class Meta:
@@ -127,7 +199,7 @@ class CardGridBlock(blocks.StructBlock):
 
 
 class ColumnStreamBlock(blocks.StreamBlock):
-    rich_text = blocks.RichTextBlock(features=RICH_TEXT_FEATURES)
+    rich_text = StyledRichTextBlock()
     image = ApiImageBlock()
     collapse = CollapseBlock()
     video = VideoEmbedBlock()
@@ -135,16 +207,35 @@ class ColumnStreamBlock(blocks.StreamBlock):
 
 class ColumnsBlock(blocks.StructBlock):
     layout = blocks.ChoiceBlock(choices=[("2", "Two columns"), ("3", "Three columns")], default="2")
-    columns = blocks.ListBlock(ColumnStreamBlock())
+    columns = blocks.ListBlock(
+        ColumnStreamBlock(),
+        min_num=2,
+        max_num=3,
+        help_text="Add one list item per column; put the column's content inside that item.",
+    )
 
     class Meta:
         icon = "grip"
         label = "Columns"
 
+    def clean(self, value):
+        cleaned = super().clean(value)
+        layout, count = cleaned["layout"], len(cleaned["columns"])
+        if str(count) != layout:
+            raise blocks.StructBlockValidationError(
+                block_errors={
+                    "columns": ValidationError(
+                        f"Layout is set to {layout} columns but {count} column(s) were added. "
+                        "Each column is a separate list item."
+                    )
+                }
+            )
+        return cleaned
+
 
 class BodyStreamBlock(blocks.StreamBlock):
     hero = HeroBlock()
-    rich_text = blocks.RichTextBlock(features=RICH_TEXT_FEATURES)
+    rich_text = StyledRichTextBlock()
     image = ApiImageBlock()
     image_slider = ImageSliderBlock()
     collapse = CollapseBlock()

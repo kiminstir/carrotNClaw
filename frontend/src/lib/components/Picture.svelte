@@ -5,8 +5,15 @@
 		image,
 		sizes = '(min-width: 1024px) 960px, 100vw',
 		class: className = '',
+		style = '',
 		priority = false
-	}: { image: ApiImage; sizes?: string; class?: string; priority?: boolean } = $props();
+	}: {
+		image: ApiImage;
+		sizes?: string;
+		class?: string;
+		style?: string;
+		priority?: boolean;
+	} = $props();
 
 	const srcset = $derived(image.srcset.map((s) => `${s.url} ${s.width}w`).join(', '));
 </script>
@@ -22,4 +29,5 @@
 	fetchpriority={priority ? 'high' : 'auto'}
 	decoding="async"
 	class={className}
+	style={style || undefined}
 />

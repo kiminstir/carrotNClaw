@@ -5,6 +5,8 @@ export interface ApiImage {
 	width: number;
 	height: number;
 	srcset: { url: string; width: number }[];
+	/** Centre of the editor-set focal point, in percent of the image; null when none is set. */
+	focal_point: { x: number; y: number } | null;
 }
 
 export interface ApiLink {
@@ -23,6 +25,15 @@ export interface HeroValue {
 export interface ImageSliderValue {
 	images: (ApiImage | null)[];
 	autoplay: boolean;
+}
+
+export interface RichTextValue {
+	text: string;
+	color: 'default' | 'ink' | 'accent' | 'sage';
+	size: 'sm' | 'md' | 'lg';
+	line_height: 'tight' | 'normal' | 'relaxed';
+	align: 'left' | 'center' | 'right';
+	vertical_align: 'top' | 'center' | 'bottom';
 }
 
 export interface CollapseValue {
@@ -45,15 +56,21 @@ export interface Card {
 	text: string;
 	price: string;
 	link: ApiLink | null;
+	/** Rich text HTML; when non-empty the card opens a pop-up showing it. */
+	description: string;
+	/** Shown in the pop-up instead of `image`; never rendered without a description. */
+	detail_image: ApiImage | null;
 }
 
 export interface CardGridValue {
 	columns: '2' | '3' | '4';
+	/** artwork: cut-out image shown whole above the text; portrait: photo fills a 3:4 card. */
+	style: 'artwork' | 'portrait';
 	cards: Card[];
 }
 
 export type ColumnBlock =
-	| { type: 'rich_text'; id: string; value: string }
+	| { type: 'rich_text'; id: string; value: RichTextValue }
 	| { type: 'image'; id: string; value: ApiImage | null }
 	| { type: 'collapse'; id: string; value: CollapseValue }
 	| { type: 'video'; id: string; value: VideoValue | null };

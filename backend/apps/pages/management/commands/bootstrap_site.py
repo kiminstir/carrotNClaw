@@ -13,6 +13,20 @@ from apps.music.models import MusicSettings
 from apps.navigation.models import FooterSettings, HeaderSettings
 from apps.pages.models import FlexPage
 
+
+def rich_text(html):
+    return {
+        "type": "rich_text",
+        "value": {
+            "text": html,
+            "color": "default",
+            "size": "md",
+            "line_height": "normal",
+            "align": "left",
+        },
+    }
+
+
 HOME_BODY = [
     {
         "type": "hero",
@@ -23,17 +37,14 @@ HOME_BODY = [
             "cta": {"label": "See the menu", "page": None, "url": ""},
         },
     },
-    {
-        "type": "rich_text",
-        "value": "<p>Replace this text in the admin. Every page is built from blocks.</p>",
-    },
+    rich_text("<p>Replace this text in the admin. Every page is built from blocks.</p>"),
 ]
 
 CHILD_PAGES = [
     (
         "About",
         "about",
-        [{"type": "rich_text", "value": "<p>The story of the tavern goes here.</p>"}],
+        [rich_text("<p>The story of the tavern goes here.</p>")],
     ),
     (
         "Menu",
@@ -43,6 +54,7 @@ CHILD_PAGES = [
                 "type": "card_grid",
                 "value": {
                     "columns": "3",
+                    "style": "artwork",
                     "cards": [
                         {
                             "image": None,
@@ -51,6 +63,8 @@ CHILD_PAGES = [
                             "text": "Slow-cooked with root vegetables.",
                             "price": "4 silver",
                             "link": {"label": "", "page": None, "url": ""},
+                            "description": "",
+                            "detail_image": None,
                         }
                     ],
                 },
@@ -60,7 +74,7 @@ CHILD_PAGES = [
     (
         "Gallery",
         "gallery",
-        [{"type": "rich_text", "value": "<p>Add an image slider block here.</p>"}],
+        [rich_text("<p>Add an image slider block here.</p>")],
     ),
     (
         "Staff",
@@ -70,6 +84,7 @@ CHILD_PAGES = [
                 "type": "card_grid",
                 "value": {
                     "columns": "3",
+                    "style": "portrait",
                     "cards": [
                         {
                             "image": None,
@@ -78,6 +93,8 @@ CHILD_PAGES = [
                             "text": "Knows every regular by name.",
                             "price": "",
                             "link": {"label": "", "page": None, "url": ""},
+                            "description": "",
+                            "detail_image": None,
                         }
                     ],
                 },

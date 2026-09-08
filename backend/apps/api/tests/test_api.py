@@ -33,7 +33,9 @@ def test_page_detail_has_structured_body_and_expanded_rich_text(client, site):
         "external": False,
     }
     assert data["body"][1]["type"] == "rich_text"
-    assert data["body"][1]["value"].startswith("<p>")
+    rich = data["body"][1]["value"]
+    assert rich["text"].startswith("<p>")
+    assert (rich["color"], rich["size"], rich["line_height"]) == ("default", "md", "normal")
 
 
 def test_site_settings_endpoint(client, site):

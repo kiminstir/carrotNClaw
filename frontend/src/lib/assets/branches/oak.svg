@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 260" fill="none">
+ <defs>
+  <g id="oak"><path d="M0 0C-5-7-16-6-14-14C-25-14-25-24-18-26C-28-32-22-42-14-38C-17-50-7-53-4-47C1-58 8-58 10-45C21-49 26-39 17-33C29-29 26-18 16-19C21-9 11-5 0 0Z" fill="#52633b" stroke="#829060" stroke-width=".85"/><path d="M0 0L5-43M2-15L-12-24M3-27L-12-36M2-18L15-28" stroke="#a2a471" stroke-width=".7"/></g>
+  <g id="acorn"><path d="M-5 0C-7 11 0 15 2 16C7 10 10 4 6 0" fill="#a17b49"/><path d="M-7 1Q0-9 8 0L7 4Q0 0-7 4Z" fill="#59452d" stroke="#9e8055" stroke-width=".8"/></g>
+ </defs>
+ <g transform="translate(20 20) scale(.846153846)">
+ <path d="M40 247C45 209 27 178 36 135C45 95 28 65 46 45C70 25 106 43 145 35C180 29 215 40 250 24" stroke="#3a2e22" stroke-width="7" stroke-linecap="round"/>
+ <path d="M40 247C45 209 27 178 36 135C45 95 28 65 46 45C70 25 106 43 145 35C180 29 215 40 250 24" stroke="#8c7047" stroke-width="2.2" stroke-linecap="round"/>
+ <g stroke="#8c7047" stroke-width="1.3"><path d="M37 190L21 175M34 162L58 148M37 118L19 97M37 83L58 71M59 39L72 58M100 37L112 18M135 37L146 59M180 34L190 18M212 33L229 47"/></g>
+ <use href="#oak" transform="translate(21 175) rotate(-40) scale(.75)"/><use href="#oak" transform="translate(58 148) rotate(55) scale(.65)"/>
+ <use href="#oak" transform="translate(19 97) rotate(-35) scale(.72)"/><use href="#oak" transform="translate(58 71) rotate(65) scale(.72)"/>
+ <use href="#oak" transform="translate(72 58) rotate(155) scale(.62)"/><use href="#oak" transform="translate(112 18) rotate(70) scale(.65)"/>
+ <use href="#oak" transform="translate(146 59) rotate(145) scale(.8)"/><use href="#oak" transform="translate(190 18) rotate(65) scale(.6)"/>
+ <use href="#oak" transform="translate(229 47) rotate(140) scale(.55)"/><use href="#oak" transform="translate(40 223) rotate(70) scale(.48)"/>
+ <path d="M35 127Q58 112 67 125M91 37Q88 58 101 64" stroke="#92744a" stroke-width="1.2"/>
+ <use href="#acorn" transform="translate(67 125) rotate(-15)"/><use href="#acorn" transform="translate(101 64) rotate(-30) scale(.8)"/>
+ </g>
+</svg>
