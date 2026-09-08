@@ -1,5 +1,8 @@
+import copy
 import os
+from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -17,7 +20,7 @@ HOME_BODY = [
             "heading": "Welcome to Carrot&Claw",
             "subheading": "Warm hearth, cold ale and the best stew this side of the mountains.",
             "background": None,
-            "cta": {"label": "See the menu", "page": None, "url": "/menu/"},
+            "cta": {"label": "See the menu", "page": None, "url": ""},
         },
     },
     {
@@ -98,6 +101,7 @@ class Command(BaseCommand):
         children = {
             slug: self.ensure_child(home, title, slug, body) for title, slug, body in CHILD_PAGES
         }
+        self.link_hero_cta_to_menu(home, children.get("menu"))
         self.ensure_settings(home, children)
         self.stdout.write(self.style.SUCCESS("Site bootstrap complete."))
 
@@ -116,10 +120,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Created superuser {username}.")
 
     def ensure_home(self):
-        try:
-            root = Page.get_first_root_node()
-        except AttributeError:
-            root = Page.objects.get(depth=1)
+        root = Page.get_first_root_node()
         home = FlexPage.objects.child_of(root).filter(slug="home").first()
         if home is None:
             # Wagtail's initial migration creates a plain Page at slug "home" (the
@@ -142,13 +143,26 @@ class Command(BaseCommand):
 
         site = Site.objects.filter(is_default_site=True).first()
         if site is None:
-            Site.objects.create(hostname="localhost", root_page=home, is_default_site=True)
+            site = Site.objects.create(hostname="localhost", root_page=home, is_default_site=True)
         elif site.root_page_id != home.pk:
             old_root = site.root_page
             site.root_page = home
             site.save()
             if old_root.specific_class is Page:  # Wagtail's default "Welcome" page
                 old_root.delete()
+
+        if site.hostname == "localhost":
+            # Wagtail's initial migration (and the branch above, for a fresh
+            # install) both leave the default Site at hostname "localhost".
+            # Point it at the real frontend host instead - but only while it
+            # is still at that placeholder, so an operator who has since set
+            # a real hostname is never overridden by a later bootstrap run.
+            parsed = urlparse(settings.FRONTEND_URL)
+            default_port = 443 if parsed.scheme == "https" else 80
+            site.hostname = parsed.hostname or "localhost"
+            site.port = parsed.port or default_port
+            site.site_name = "Carrot&Claw"
+            site.save()
 
         # Self-healing: once the Site is (re)pointed at `home`, nothing should
         # reference any other depth-2 page any more. Clean up any leftover
@@ -160,6 +174,25 @@ class Command(BaseCommand):
             if stray.specific_class is Page:
                 stray.delete()
         return home
+
+    def link_hero_cta_to_menu(self, home, menu):
+        if menu is None:
+            return
+        # Deep-copy: get_prep_value() can hand back the same dicts backing the
+        # module-level HOME_BODY constant (for a stream that was never
+        # touched), and mutating those in place would corrupt every home
+        # page created for the rest of the process's lifetime.
+        raw = copy.deepcopy(home.body.get_prep_value())
+        if not raw or raw[0].get("type") != "hero":
+            return
+        cta = raw[0]["value"].get("cta") or {}
+        if cta.get("page") or cta.get("url"):
+            return  # already set - by an earlier run, or by an editor
+        cta["page"] = menu.pk
+        raw[0]["value"]["cta"] = cta
+        home.body = stream(FlexPage.body, raw)
+        home.save_revision().publish()
+        self.stdout.write("Linked hero CTA to the Menu page.")
 
     def ensure_child(self, home, title, slug, body):
         page = FlexPage.objects.child_of(home).filter(slug=slug).first()

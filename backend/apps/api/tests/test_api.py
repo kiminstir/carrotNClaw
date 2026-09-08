@@ -30,7 +30,7 @@ def test_page_detail_has_structured_body_and_expanded_rich_text(client, site):
     assert data["body"][0]["value"]["cta"] == {
         "label": "See the menu",
         "href": "/menu/",
-        "external": True,
+        "external": False,
     }
     assert data["body"][1]["type"] == "rich_text"
     assert data["body"][1]["value"].startswith("<p>")

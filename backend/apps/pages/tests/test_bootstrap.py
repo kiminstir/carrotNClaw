@@ -30,6 +30,16 @@ def test_bootstrap_is_idempotent(monkeypatch):
     assert all(p.live for p in FlexPage.objects.all())
     assert [b.block_type for b in home.body][0] == "hero"
 
+    menu = FlexPage.objects.get(slug="menu")
+    hero = home.body[0]
+    assert hero.value["cta"]["page"].pk == menu.pk
+
+    FlexPage.body.field.stream_block.clean(home.body)  # must not raise
+
+    site = Site.objects.get(is_default_site=True)
+    assert site.hostname == "frontend.test"
+    assert site.port == 80
+
     assert get_user_model().objects.filter(username="admin", is_superuser=True).count() == 1
     assert len(HeaderSettings.load().menu) == 5
     assert FooterSettings.load().copyright
