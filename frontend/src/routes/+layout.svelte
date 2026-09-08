@@ -1,6 +1,5 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
 	import { prefersReducedMotion } from 'svelte/motion';
@@ -12,7 +11,14 @@
 	const showPlayer = $derived(data.settings.music.enabled && data.settings.music.tracks.length > 0);
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+	<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+	<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+	<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+	<meta name="theme-color" content="#17291f" />
+</svelte:head>
 
 <a href="#main-content" class="skip-link">Skip to content</a>
 <div class="site-shell" class:has-player={showPlayer}>
