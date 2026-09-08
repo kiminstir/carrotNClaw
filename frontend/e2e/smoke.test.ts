@@ -144,6 +144,46 @@ test('slider images open the clicked image in the lightbox', async ({ page }) =>
 	await expect(second).toBeFocused();
 });
 
+test('slider filmstrip selects an image and the counter follows', async ({ page }) => {
+	await page.setViewportSize({ width: 1200, height: 900 });
+	await page.goto('/gallery/');
+	const slider = page.locator('[data-block="image_slider"]').first();
+	const thumbs = slider.getByRole('button', { name: /^Show image \d+/ });
+	const count = await thumbs.count();
+	expect(count).toBeGreaterThan(2);
+	await expect(slider.getByTestId('slider-counter')).toHaveText(`1 of ${count}`);
+	await expect(thumbs.nth(0)).toHaveAttribute('aria-current', 'true');
+
+	await thumbs.nth(2).click();
+	await expect(thumbs.nth(2)).toHaveAttribute('aria-current', 'true');
+	await expect(thumbs.nth(0)).not.toHaveAttribute('aria-current', 'true');
+	await expect(slider.getByTestId('slider-counter')).toHaveText(`3 of ${count}`);
+});
+
+test('lightbox browses the slider with arrows and keys, wrapping at the ends', async ({ page }) => {
+	await page.setViewportSize({ width: 1200, height: 900 });
+	await page.goto('/gallery/');
+	const slider = page.locator('[data-block="image_slider"]').first();
+	const count = await slider.getByRole('button', { name: /^Show image \d+/ }).count();
+	await slider
+		.getByRole('button', { name: /^Enlarge image/ })
+		.first()
+		.click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog).toBeVisible();
+	const counter = dialog.getByTestId('lightbox-counter');
+	await expect(counter).toHaveText(`1 of ${count}`);
+
+	await page.keyboard.press('ArrowRight');
+	await expect(counter).toHaveText(`2 of ${count}`);
+	await dialog.getByRole('button', { name: 'Previous image' }).click();
+	await expect(counter).toHaveText(`1 of ${count}`);
+	await page.keyboard.press('ArrowLeft');
+	await expect(counter).toHaveText(`${count} of ${count}`);
+	await dialog.getByRole('button', { name: 'Next image' }).click();
+	await expect(counter).toHaveText(`1 of ${count}`);
+});
+
 test.describe('high-DPI screen', () => {
 	test.use({ deviceScaleFactor: 2, viewport: { width: 1000, height: 900 } });
 

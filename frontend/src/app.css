@@ -680,6 +680,69 @@ p {
 .image-zoom {
 	cursor: zoom-in;
 }
+/* Slider filmstrip and caption line (ImageSlider.svelte). */
+.filmstrip {
+	display: flex;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+	padding: 0.25rem 0.125rem;
+	overflow-x: auto;
+	scrollbar-width: thin;
+	scrollbar-color: var(--wood-edge) transparent;
+	scroll-snap-type: x proximity;
+}
+.thumb {
+	flex: 0 0 auto;
+	width: 84px;
+	aspect-ratio: 4 / 3;
+	overflow: hidden;
+	border: 1.5px solid var(--line);
+	border-radius: 3px;
+	background: var(--wood);
+	opacity: 0.55;
+	scroll-snap-align: center;
+	transition:
+		opacity 0.2s,
+		border-color 0.2s;
+}
+.thumb:hover,
+.thumb.is-current {
+	opacity: 1;
+}
+.thumb.is-current {
+	border-color: var(--color-accent);
+	box-shadow: 0 0 0 1px #d4af7940;
+}
+.thumb:focus-visible {
+	outline-offset: 2px;
+}
+.thumb-img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.slider-caption {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 1rem;
+	margin-top: 0.6rem;
+	padding: 0 0.25rem;
+	font-size: 0.9rem;
+	color: var(--color-muted);
+}
+.caption-text {
+	font-family: var(--font-display);
+	font-style: italic;
+	color: #e3d9bf;
+}
+.slider-counter {
+	flex-shrink: 0;
+	font-size: 0.8rem;
+	letter-spacing: 0.02em;
+	font-variant-numeric: tabular-nums;
+}
 .image-zoom:focus-visible {
 	outline-offset: 2px;
 }

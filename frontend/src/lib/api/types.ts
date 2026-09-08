@@ -22,8 +22,14 @@ export interface HeroValue {
 	cta: ApiLink | null;
 }
 
+/** One slide; the caption is display text separate from the image's alt text, "" when unset. */
+export interface SliderImage {
+	image: ApiImage;
+	caption: string;
+}
+
 export interface ImageSliderValue {
-	images: (ApiImage | null)[];
+	images: (SliderImage | null)[];
 	autoplay: boolean;
 }
 

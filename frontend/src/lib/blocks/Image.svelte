@@ -6,6 +6,8 @@
 
 	let { value }: { value: ApiImage | null } = $props();
 	let open = $state(false);
+	// The lightbox browses a list; a lone image is a list of one with no caption.
+	const items = $derived(value ? [{ image: value, caption: '' }] : []);
 </script>
 
 {#if value}
@@ -22,5 +24,5 @@
 			<Branch kind="willow" corner="bottom-left" />
 		</div>
 	</figure>
-	<Lightbox image={value} bind:open />
+	<Lightbox {items} bind:open />
 {/if}

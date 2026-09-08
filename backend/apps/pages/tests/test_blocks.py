@@ -16,12 +16,14 @@ from apps.pages.blocks import (
     CollapseBlock,
     ColumnsBlock,
     ColumnStreamBlock,
+    ImageSliderBlock,
     LinkBlock,
+    SliderImageBlock,
     StyledRichTextBlock,
     VideoEmbedBlock,
 )
 from apps.pages.models import FlexPage
-from apps.pages.stream_migrations import WrapRichTextOperation
+from apps.pages.stream_migrations import WrapRichTextOperation, WrapSliderImagesOperation
 
 
 @pytest.mark.django_db
@@ -273,3 +275,109 @@ def test_body_stream_block_has_all_block_types():
         "columns",
         "card_grid",
     }
+
+
+@pytest.mark.django_db
+def test_slider_image_block_api_representation_carries_caption():
+    photo = Image.objects.create(title="Bar", file=get_test_image_file(size=(800, 600)))
+    block = SliderImageBlock()
+    value = block.to_python(
+        {
+            "image": {"image": photo.pk, "decorative": False, "alt_text": "The bar"},
+            "caption": "Where the evening starts",
+        }
+    )
+    data = block.get_api_representation(value)
+    assert data["image"]["id"] == photo.pk
+    assert data["image"]["alt"] == "The bar"
+    assert data["caption"] == "Where the evening starts"
+
+
+@pytest.mark.django_db
+def test_slider_image_block_without_image_is_none_and_caption_defaults_empty():
+    block = SliderImageBlock()
+    assert block.get_api_representation(block.to_python({"image": None, "caption": "x"})) is None
+    photo = Image.objects.create(title="Bar", file=get_test_image_file(size=(800, 600)))
+    value = block.to_python({"image": {"image": photo.pk, "decorative": True, "alt_text": ""}})
+    assert block.get_api_representation(value)["caption"] == ""
+
+
+@pytest.mark.django_db
+def test_image_slider_block_lists_captioned_images():
+    photo = Image.objects.create(title="Bar", file=get_test_image_file(size=(800, 600)))
+    block = ImageSliderBlock()
+    value = block.to_python(
+        {
+            "images": [
+                {
+                    "type": "item",
+                    "id": "a",
+                    "value": {
+                        "image": {"image": photo.pk, "decorative": False, "alt_text": "Bar"},
+                        "caption": "Cheers",
+                    },
+                }
+            ],
+            "autoplay": False,
+        }
+    )
+    data = block.get_api_representation(value)
+    assert data["autoplay"] is False
+    assert [(i["image"]["alt"], i["caption"]) for i in data["images"]] == [("Bar", "Cheers")]
+
+
+def test_wrap_slider_images_operation_wraps_old_image_items():
+    raw = [
+        {
+            "type": "image_slider",
+            "id": "s",
+            "value": {
+                "autoplay": True,
+                "images": [
+                    {
+                        "type": "item",
+                        "id": "a",
+                        "value": {"image": 5, "alt_text": "Bar", "decorative": False},
+                    },
+                    {"type": "item", "id": "b", "value": 7},
+                    {"type": "item", "id": "c", "value": None},
+                ],
+            },
+        },
+        {"type": "image", "value": None, "id": "x"},
+    ]
+    out = apply_changes_to_raw_data(raw, "", WrapSliderImagesOperation(), FlexPage.body)
+    assert out[0]["value"]["autoplay"] is True
+    assert out[0]["value"]["images"] == [
+        {
+            "type": "item",
+            "id": "a",
+            "value": {
+                "image": {"image": 5, "alt_text": "Bar", "decorative": False},
+                "caption": "",
+            },
+        },
+        {"type": "item", "id": "b", "value": {"image": {"image": 7}, "caption": ""}},
+        {"type": "item", "id": "c", "value": {"image": None, "caption": ""}},
+    ]
+    assert out[1] == raw[1]
+
+
+def test_wrap_slider_images_operation_leaves_wrapped_items_alone():
+    raw = [
+        {
+            "type": "image_slider",
+            "id": "s",
+            "value": {
+                "autoplay": False,
+                "images": [
+                    {
+                        "type": "item",
+                        "id": "a",
+                        "value": {"image": {"image": 5, "alt_text": "Bar"}, "caption": "Hi"},
+                    }
+                ],
+            },
+        }
+    ]
+    assert apply_changes_to_raw_data(raw, "", WrapSliderImagesOperation(), FlexPage.body) == raw

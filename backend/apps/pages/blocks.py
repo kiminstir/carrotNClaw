@@ -128,8 +128,25 @@ class CollapseBlock(blocks.StructBlock):
         label = "Collapse / accordion"
 
 
+class SliderImageBlock(blocks.StructBlock):
+    """One slide: the image plus an optional caption shown under it and in the lightbox."""
+
+    image = ApiImageBlock()
+    caption = blocks.CharBlock(required=False, max_length=200)
+
+    class Meta:
+        icon = "image"
+        label = "Slide"
+
+    def get_api_representation(self, value, context=None):
+        image = self.child_blocks["image"].get_api_representation(value.get("image"), context)
+        if image is None:
+            return None
+        return {"image": image, "caption": value.get("caption") or ""}
+
+
 class ImageSliderBlock(blocks.StructBlock):
-    images = blocks.ListBlock(ApiImageBlock())
+    images = blocks.ListBlock(SliderImageBlock())
     autoplay = blocks.BooleanBlock(required=False, default=True)
 
     class Meta:

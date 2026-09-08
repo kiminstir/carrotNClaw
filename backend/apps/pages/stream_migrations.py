@@ -29,3 +29,34 @@ class WrapRichTextOperation(BaseBlockOperation):
     @property
     def operation_name_fragment(self):
         return "wrap_rich_text_in_struct"
+
+
+@deconstructible
+class WrapSliderImagesOperation(BaseBlockOperation):
+    """Turn each bare image item of an `image_slider` into the `SliderImageBlock` struct shape.
+
+    Old items hold the ImageBlock dict (or, older still, a plain image pk); new items are
+    `{"image": <that>, "caption": ""}`. Items already carrying a `caption` are left alone.
+    Point `block_path_str` at the StreamBlock that contains the sliders ("" for the page body).
+    """
+
+    def apply(self, block_value):
+        wrapped = []
+        for child in block_value:
+            if child.get("type") != "image_slider" or not isinstance(child.get("value"), dict):
+                wrapped.append(child)
+                continue
+            items = []
+            for item in child["value"].get("images", []):
+                value = item.get("value")
+                if isinstance(value, dict) and "caption" in value:
+                    items.append(item)
+                    continue
+                image = {"image": value} if isinstance(value, int) else value
+                items.append({**item, "value": {"image": image, "caption": ""}})
+            wrapped.append({**child, "value": {**child["value"], "images": items}})
+        return wrapped
+
+    @property
+    def operation_name_fragment(self):
+        return "wrap_slider_images_in_struct"
