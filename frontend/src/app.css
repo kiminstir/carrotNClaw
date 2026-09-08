@@ -624,18 +624,50 @@ body:has(dialog[open]) {
 	max-width: 1104px;
 	margin: auto;
 }
+.footer-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem 2rem;
+	margin-bottom: 1.5rem;
+}
 .footer-brand {
 	display: flex;
 	align-items: center;
 	gap: 0.7rem;
 	font-family: var(--font-display);
 	font-size: 1.75rem;
-	margin-bottom: 1.5rem;
 	letter-spacing: -0.04em;
 }
 .footer-brand svg {
 	width: 38px;
 	color: #b7c99b;
+}
+.footer-social {
+	display: flex;
+	gap: 0.75rem;
+}
+.footer-social a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: 999px;
+	border: 1px solid #b7c99b40;
+	color: #b7c99b;
+	transition:
+		color 0.2s ease,
+		border-color 0.2s ease;
+}
+.footer-social a:hover,
+.footer-social a:focus-visible {
+	color: var(--parchment);
+	border-color: var(--parchment);
+}
+.footer-social svg {
+	width: 1.2rem;
+	height: 1.2rem;
 }
 .footer-grid {
 	display: flex;
@@ -768,6 +800,12 @@ body:has(dialog[open]) {
 	}
 	.hero-copy p {
 		max-width: 320px;
+	}
+	.footer-top {
+		flex-wrap: wrap;
+	}
+	.footer-social {
+		margin-left: auto;
 	}
 	.footer-grid {
 		flex-direction: column;

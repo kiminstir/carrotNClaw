@@ -28,3 +28,4 @@ def test_footer_settings_defaults():
     footer = FooterSettings.load()
     assert footer.text == ""
     assert len(footer.links) == 0
+    assert (footer.discord_url, footer.youtube_url, footer.twitch_url) == ("", "", "")

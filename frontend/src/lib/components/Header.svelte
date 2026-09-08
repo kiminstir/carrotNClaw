@@ -27,8 +27,8 @@
 			{#if header.logo}
 				<Picture
 					image={header.logo}
-					sizes="40px"
-					class="h-10 w-10 rounded-full object-cover"
+					sizes="48px"
+					class="h-12 w-12 rounded-full object-cover"
 					priority
 				/>
 			{:else}

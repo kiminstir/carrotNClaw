@@ -110,8 +110,16 @@ export interface Track {
 	src: string;
 }
 
+export type SocialNetwork = 'discord' | 'youtube' | 'twitch';
+
+/** Only networks whose URL is filled in the CMS are returned, in display order. */
+export interface SocialLink {
+	network: SocialNetwork;
+	url: string;
+}
+
 export interface SiteSettings {
 	header: { site_title: string; logo: ApiImage | null; menu: ApiLink[] };
-	footer: { text: string; links: ApiLink[]; copyright: string };
+	footer: { text: string; links: ApiLink[]; copyright: string; social: SocialLink[] };
 	music: { enabled: boolean; volume: number; tracks: Track[] };
 }

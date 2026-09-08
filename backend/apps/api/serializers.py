@@ -25,6 +25,7 @@ def serialize_footer(footer, context):
         "text": expand_db_html(footer.text) if footer.text else "",
         "links": flatten(stream_to_api(footer.links, context)),
         "copyright": footer.copyright,
+        "social": footer.social_links(),
     }
 
 

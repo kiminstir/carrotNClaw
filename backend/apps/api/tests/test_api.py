@@ -1,6 +1,7 @@
 import pytest
 from django.core.management import call_command
 
+from apps.navigation.models import FooterSettings
 from apps.pages.models import FlexPage
 
 
@@ -53,7 +54,21 @@ def test_site_settings_endpoint(client, site):
     assert data["header"]["menu"][1]["href"] == "/about/"
     assert data["footer"]["copyright"] == "© Carrot&Claw"
     assert data["footer"]["text"].startswith("<p>")
+    assert data["footer"]["social"] == []
     assert data["music"] == {"enabled": True, "volume": 40, "tracks": []}
+
+
+def test_site_settings_footer_social_lists_only_filled_networks(client, site):
+    footer = FooterSettings.load()
+    footer.discord_url = "https://discord.gg/carrot"
+    footer.twitch_url = "https://twitch.tv/carrotnclaw"
+    footer.save()
+
+    data = client.get("/api/v2/site-settings/").json()
+    assert data["footer"]["social"] == [
+        {"network": "discord", "url": "https://discord.gg/carrot"},
+        {"network": "twitch", "url": "https://twitch.tv/carrotnclaw"},
+    ]
 
 
 def test_preview_endpoint_serves_draft(client, site):
