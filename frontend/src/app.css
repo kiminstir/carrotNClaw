@@ -123,10 +123,64 @@ p {
 	width: 43px;
 	color: var(--color-accent);
 }
+.header-end {
+	display: flex;
+	align-items: center;
+	gap: 1rem 2.25rem;
+	min-width: 0;
+}
 .desktop-nav {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.5rem 1.8rem;
+}
+/* Open / closed pill (OpenBadge.svelte). The dot is the signal: lit and softly pulsing while
+   the tavern is open, dim while closed. */
+.open-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	padding: 0.4rem 0.85rem;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	font-size: 0.78rem;
+	line-height: 1;
+	white-space: nowrap;
+	color: var(--color-muted);
+}
+.open-badge.is-open {
+	color: var(--color-ink);
+	border-color: #78916a;
+}
+.open-dot {
+	flex-shrink: 0;
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	background: #6f7d63;
+}
+.is-open .open-dot {
+	background: #b6e08c;
+	box-shadow:
+		0 0 0 3px #b6e08c2e,
+		0 0 10px #b6e08cb3;
+	animation: open-dot-pulse 3s ease-in-out infinite;
+}
+@keyframes open-dot-pulse {
+	0%,
+	100% {
+		box-shadow:
+			0 0 0 3px #b6e08c2e,
+			0 0 10px #b6e08cb3;
+	}
+	50% {
+		box-shadow:
+			0 0 0 5px #b6e08c14,
+			0 0 4px #b6e08c80;
+	}
+}
+.mobile-badge:not(:empty) {
+	padding: 0.9rem 0 0.5rem;
 }
 .nav-link {
 	position: relative;
@@ -855,7 +909,8 @@ body:has(dialog[open]) {
 		width: 35px;
 		flex-shrink: 0;
 	}
-	.desktop-nav {
+	.desktop-nav,
+	.desktop-badge {
 		display: none;
 	}
 	.menu-toggle {
@@ -907,5 +962,8 @@ body:has(dialog[open]) {
 	}
 	.hero-motes {
 		display: none;
+	}
+	.is-open .open-dot {
+		animation: none;
 	}
 }

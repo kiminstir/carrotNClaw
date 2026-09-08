@@ -29,6 +29,13 @@ def serialize_footer(footer, context):
     }
 
 
+def serialize_hours(hours, context):
+    return {
+        "enabled": hours.enabled,
+        "slots": flatten(stream_to_api(hours.slots, context)),
+    }
+
+
 def serialize_music(music, context):
     return {
         "enabled": music.enabled,

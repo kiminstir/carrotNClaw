@@ -16,7 +16,7 @@
 
 <a href="#main-content" class="skip-link">Skip to content</a>
 <div class="site-shell" class:has-player={showPlayer}>
-	<Header header={data.settings.header} />
+	<Header header={data.settings.header} hours={data.settings.hours} />
 
 	{#key page.url.pathname}
 		<main

@@ -118,8 +118,17 @@ export interface SocialLink {
 	url: string;
 }
 
+/** One opening on one weekday (Monday = 0), times as HH:MM in UTC (server time). A closing
+ *  time earlier than the opening time runs past midnight. */
+export interface HourSlot {
+	day: number;
+	opens: string;
+	closes: string;
+}
+
 export interface SiteSettings {
 	header: { site_title: string; logo: ApiImage | null; menu: ApiLink[] };
+	hours: { enabled: boolean; slots: HourSlot[] };
 	footer: { text: string; links: ApiLink[]; copyright: string; social: SocialLink[] };
 	music: { enabled: boolean; volume: number; tracks: Track[] };
 }

@@ -94,3 +94,35 @@ def test_preview_endpoint_bad_token_is_404(client, site):
 def test_preview_endpoint_unknown_content_type_is_404(client, site):
     response = client.get("/api/v2/page_preview/1/", {"content_type": "bogus", "token": "bogus"})
     assert response.status_code == 404
+
+
+def test_site_settings_hours_default_to_enabled_with_no_slots(client, site):
+    data = client.get("/api/v2/site-settings/").json()
+    assert data["hours"] == {"enabled": True, "slots": []}
+
+
+def test_site_settings_hours_lists_slots_as_weekday_index_and_hhmm(client, site):
+    from wagtail.blocks import StreamValue
+
+    from apps.navigation.models import OpeningHoursSettings
+
+    hours = OpeningHoursSettings.load()
+    hours.enabled = False
+    hours.slots = StreamValue(
+        OpeningHoursSettings.slots.field.stream_block,
+        [
+            {"type": "slot", "value": {"day": "4", "opens": "20:00", "closes": "02:00"}},
+            {"type": "slot", "value": {"day": "6", "opens": "18:30", "closes": "23:00"}},
+        ],
+        is_lazy=True,
+    )
+    hours.save()
+
+    data = client.get("/api/v2/site-settings/").json()
+    assert data["hours"] == {
+        "enabled": False,
+        "slots": [
+            {"day": 4, "opens": "20:00", "closes": "02:00"},
+            {"day": 6, "opens": "18:30", "closes": "23:00"},
+        ],
+    }

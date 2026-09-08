@@ -3,6 +3,7 @@ from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.contrib.settings.models import BaseGenericSetting, register_setting
 from wagtail.fields import RichTextField, StreamField
 
+from apps.navigation.blocks import OpeningSlotBlock
 from apps.pages.blocks import LinkBlock
 
 
@@ -56,3 +57,23 @@ class FooterSettings(BaseGenericSetting):
 
     class Meta:
         verbose_name = "Footer"
+
+
+@register_setting(icon="time")
+class OpeningHoursSettings(BaseGenericSetting):
+    enabled = models.BooleanField(
+        default=True, help_text="Show the open / closed badge in the site header."
+    )
+    slots = StreamField(
+        [("slot", OpeningSlotBlock())],
+        blank=True,
+        help_text=(
+            "Times are server time (UTC). Add one entry per opening; a day can have "
+            "several. Leave empty to hide the badge."
+        ),
+    )
+
+    panels = [FieldPanel("enabled"), FieldPanel("slots")]
+
+    class Meta:
+        verbose_name = "Opening hours"
