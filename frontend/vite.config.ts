@@ -17,6 +17,12 @@ export default defineConfig({
 			adapter: adapter()
 		})
 	],
+	server: {
+		proxy: {
+			'/media': 'http://localhost:8000',
+			'/documents': 'http://localhost:8000'
+		}
+	},
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

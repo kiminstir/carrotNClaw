@@ -8,6 +8,7 @@
 	let index = $state(0);
 	let playing = $state(false);
 	let muted = $state(false);
+	let consecutiveErrors = $state(0);
 
 	const track = $derived(music.tracks[index]);
 	const STORAGE_KEY = 'cc-muted';
@@ -29,9 +30,21 @@
 		try {
 			await audio.play();
 			playing = true;
+			consecutiveErrors = 0;
 		} catch {
 			playing = false; // autoplay blocked until the user interacts
 		}
+	}
+
+	function handleError() {
+		consecutiveErrors += 1;
+		if (consecutiveErrors >= music.tracks.length) {
+			// Every track in the playlist has now failed in a row - stop
+			// instead of skipping forever.
+			playing = false;
+			return;
+		}
+		skip(1);
 	}
 
 	function toggle() {
@@ -60,7 +73,14 @@
 	}
 </script>
 
-<audio bind:this={audio} src={track.src} {muted} preload="none" onended={() => skip(1)}></audio>
+<audio
+	bind:this={audio}
+	src={track.src}
+	{muted}
+	preload="none"
+	onended={() => skip(1)}
+	onerror={handleError}
+></audio>
 
 <div
 	data-testid="audio-player"

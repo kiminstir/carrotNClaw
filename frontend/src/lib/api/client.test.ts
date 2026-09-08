@@ -41,6 +41,24 @@ describe('getPageByPath', () => {
 		expect(fetch.mock.calls[1][0]).toBe(`${BASE}/api/v2/pages/7/`);
 	});
 
+	it('strips a bare trailing "?" from the redirect location', async () => {
+		const fetch = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(null, {
+					status: 302,
+					headers: { location: 'https://public.example/api/v2/pages/7/?' }
+				})
+			)
+			.mockResolvedValueOnce(
+				jsonResponse({ id: 7, title: 'About', intro: '', body: [], meta: {} })
+			);
+
+		await getPageByPath(fetch as unknown as typeof globalThis.fetch, BASE, 'about');
+
+		expect(fetch.mock.calls[1][0]).toBe(`${BASE}/api/v2/pages/7/`);
+	});
+
 	it('throws a 404 error for unknown pages', async () => {
 		const fetch = vi.fn().mockResolvedValueOnce(new Response(null, { status: 404 }));
 		await expect(

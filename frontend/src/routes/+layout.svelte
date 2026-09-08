@@ -3,6 +3,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
+	import { prefersReducedMotion } from 'svelte/motion';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import AudioPlayer from '$lib/components/AudioPlayer.svelte';
@@ -17,7 +18,7 @@
 	<Header header={data.settings.header} />
 
 	{#key page.url.pathname}
-		<main class="flex-1" in:fade={{ duration: 200 }}>
+		<main class="flex-1" in:fade={{ duration: prefersReducedMotion.current ? 0 : 200 }}>
 			{@render children()}
 		</main>
 	{/key}
