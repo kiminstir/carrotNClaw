@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BlockRenderer from '$lib/blocks/BlockRenderer.svelte';
+	import ScrollVine from '$lib/components/ScrollVine.svelte';
 
 	let { data } = $props();
 	const title = $derived(data.page.meta.seo_title || data.page.title);
@@ -20,3 +21,4 @@
 {/if}
 
 <BlockRenderer blocks={data.page.body} />
+<ScrollVine />

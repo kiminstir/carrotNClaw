@@ -9,7 +9,7 @@
 <div class="mx-auto grid max-w-6xl gap-6 px-4 py-6 {cols}">
 	{#each value.columns as column, i (i)}
 		<div class="[&_.prose]:px-0 [&_figure]:px-0">
-			<BlockRenderer blocks={column} animate={false} />
+			<BlockRenderer blocks={column} />
 		</div>
 	{/each}
 </div>

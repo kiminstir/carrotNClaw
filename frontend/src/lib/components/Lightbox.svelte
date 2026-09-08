@@ -3,7 +3,7 @@
 	import Picture from './Picture.svelte';
 
 	// Full-viewport image viewer built on the native <dialog>: the top layer escapes any ancestor
-	// transform (e.g. the scroll-reveal section), Escape closes it, focus is trapped while open and
+	// transform, Escape closes it, focus is trapped while open and
 	// restored to the trigger on close. `open` is two-way bound so the trigger owns the state.
 	let { image, open = $bindable(false) }: { image: ApiImage; open?: boolean } = $props();
 	let dialog: HTMLDialogElement | undefined = $state();

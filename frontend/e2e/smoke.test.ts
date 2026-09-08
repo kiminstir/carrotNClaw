@@ -28,6 +28,30 @@ test.describe('reduced motion', () => {
 	});
 });
 
+test('scroll vine grows down the gutter and sprouts leaves as the page scrolls', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.goto('/menu/');
+	const vine = page.getByTestId('scroll-vine');
+	await expect(vine).toBeVisible();
+	const stem = vine.locator('.vine-stem');
+	const dashOffset = () => stem.evaluate((el) => parseFloat(getComputedStyle(el).strokeDashoffset));
+	await expect.poll(dashOffset).toBeGreaterThan(0);
+	const offsetAtTop = await dashOffset();
+	const grownAtTop = await vine.locator('.vine-leaf.is-grown').count();
+
+	await page.evaluate(() => window.scrollTo(0, 3000));
+	await expect.poll(dashOffset).toBeLessThan(offsetAtTop);
+	expect(await vine.locator('.vine-leaf.is-grown').count()).toBeGreaterThan(grownAtTop);
+});
+
+test('scroll vine stays out of the way on narrow screens', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/menu/');
+	await expect(page.getByTestId('scroll-vine')).toBeHidden();
+});
+
 test('navigation is client-side so the layout (and audio player) persists', async ({ page }) => {
 	await page.goto('/');
 	await page
