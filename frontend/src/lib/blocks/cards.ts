@@ -52,7 +52,8 @@ export function hasDescription(card: Pick<Card, 'description'>): boolean {
 	);
 }
 
-// The pop-up prefers the dedicated image and falls back to the card's own one.
-export function popupImage(card: Pick<Card, 'image' | 'detail_image'>): ApiImage | null {
-	return card.detail_image ?? card.image ?? null;
+// The pop-up prefers the dedicated photos and falls back to the card's own image.
+export function popupImages(card: Pick<Card, 'image' | 'detail_images'>): ApiImage[] {
+	if (card.detail_images.length) return card.detail_images;
+	return card.image ? [card.image] : [];
 }

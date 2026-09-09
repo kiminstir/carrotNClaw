@@ -23,7 +23,11 @@ from apps.pages.blocks import (
     VideoEmbedBlock,
 )
 from apps.pages.models import FlexPage
-from apps.pages.stream_migrations import WrapRichTextOperation, WrapSliderImagesOperation
+from apps.pages.stream_migrations import (
+    WrapCardDetailImageOperation,
+    WrapRichTextOperation,
+    WrapSliderImagesOperation,
+)
 
 
 @pytest.mark.django_db
@@ -226,16 +230,40 @@ def test_card_block_api_representation_with_details():
             "price": "",
             "link": {"label": "", "page": None, "url": ""},
             "description": "<p>Long story</p>",
-            "detail_image": {"image": portrait.pk, "decorative": True, "alt_text": ""},
+            "detail_images": [
+                {"image": portrait.pk, "decorative": True, "alt_text": ""},
+                {"image": portrait.pk, "decorative": False, "alt_text": "At work"},
+            ],
         }
     )
     data = block.get_api_representation(value)
     assert data["image"]["alt"] == "The cook"
     assert data["image"]["focal_point"] is None
     assert data["description"] == "<p>Long story</p>"
-    assert data["detail_image"]["id"] == portrait.pk
-    assert data["detail_image"]["alt"] == ""
+    assert [(i["id"], i["alt"]) for i in data["detail_images"]] == [
+        (portrait.pk, ""),
+        (portrait.pk, "At work"),
+    ]
     assert data["link"] is None
+    assert "detail_image" not in data
+
+
+@pytest.mark.django_db
+def test_card_block_drops_empty_pop_up_photo_slots():
+    portrait = Image.objects.create(title="Cook", file=get_test_image_file(size=(600, 800)))
+    block = CardBlock()
+    value = block.to_python(
+        {
+            "image": None,
+            "title": "Cook",
+            "detail_images": [
+                {"image": None, "decorative": True, "alt_text": ""},
+                {"image": portrait.pk, "decorative": True, "alt_text": ""},
+            ],
+        }
+    )
+    data = block.get_api_representation(value)
+    assert [i["id"] for i in data["detail_images"]] == [portrait.pk]
 
 
 @pytest.mark.django_db
@@ -244,8 +272,12 @@ def test_card_block_optional_details_default_to_empty():
     value = block.to_python({"image": None, "title": "Cook"})
     data = block.get_api_representation(value)
     assert data["description"] == ""
-    assert data["detail_image"] is None
+    assert data["detail_images"] == []
     assert data["image"] is None
+
+
+def test_card_block_limits_pop_up_photos():
+    assert CardBlock().child_blocks["detail_images"].meta.max_num == 10
 
 
 def test_card_grid_style_choices_and_default():
@@ -381,3 +413,60 @@ def test_wrap_slider_images_operation_leaves_wrapped_items_alone():
         }
     ]
     assert apply_changes_to_raw_data(raw, "", WrapSliderImagesOperation(), FlexPage.body) == raw
+
+
+def test_wrap_card_detail_image_operation_turns_single_image_into_list():
+    raw = [
+        {
+            "type": "card_grid",
+            "id": "g",
+            "value": {
+                "columns": "3",
+                "style": "portrait",
+                "cards": [
+                    {
+                        "type": "item",
+                        "id": "a",
+                        "value": {
+                            "title": "Cook",
+                            "detail_image": {"image": 5, "alt_text": "", "decorative": True},
+                        },
+                    },
+                    {"type": "item", "id": "b", "value": {"title": "Bard", "detail_image": None}},
+                    # Bootstrap seeds cards without the ListBlock item wrapper.
+                    {"title": "Maid", "detail_image": 7},
+                ],
+            },
+        },
+        {"type": "image", "value": None, "id": "x"},
+    ]
+    out = apply_changes_to_raw_data(raw, "", WrapCardDetailImageOperation(), FlexPage.body)
+    cards = out[0]["value"]["cards"]
+    assert out[0]["value"]["style"] == "portrait"
+    assert cards[0]["id"] == "a"
+    assert "detail_image" not in cards[0]["value"]
+    (photo,) = cards[0]["value"]["detail_images"]
+    assert photo["type"] == "item"
+    assert photo["id"]
+    assert photo["value"] == {"image": 5, "alt_text": "", "decorative": True}
+    assert cards[1]["value"] == {"title": "Bard", "detail_images": []}
+    assert cards[2]["title"] == "Maid"
+    assert [p["value"] for p in cards[2]["detail_images"]] == [{"image": 7}]
+    assert out[1] == raw[1]
+
+
+def test_wrap_card_detail_image_operation_leaves_migrated_cards_alone():
+    raw = [
+        {
+            "type": "card_grid",
+            "id": "g",
+            "value": {
+                "columns": "2",
+                "style": "artwork",
+                "cards": [
+                    {"type": "item", "id": "a", "value": {"title": "Stew", "detail_images": []}}
+                ],
+            },
+        }
+    ]
+    assert apply_changes_to_raw_data(raw, "", WrapCardDetailImageOperation(), FlexPage.body) == raw

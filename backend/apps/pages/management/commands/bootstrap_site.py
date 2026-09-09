@@ -64,7 +64,7 @@ CHILD_PAGES = [
                             "price": "4 silver",
                             "link": {"label": "", "page": None, "url": ""},
                             "description": "",
-                            "detail_image": None,
+                            "detail_images": [],
                         }
                     ],
                 },
@@ -94,7 +94,7 @@ CHILD_PAGES = [
                             "price": "",
                             "link": {"label": "", "page": None, "url": ""},
                             "description": "",
-                            "detail_image": None,
+                            "detail_images": [],
                         }
                     ],
                 },

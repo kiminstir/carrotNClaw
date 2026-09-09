@@ -9,7 +9,7 @@
 		coverSizes,
 		focalPositionStyle,
 		hasDescription,
-		popupImage
+		popupImages
 	} from './cards';
 
 	let { value, id }: { value: CardGridValue; id: string } = $props();
@@ -107,7 +107,7 @@
 				subtitle={card.subtitle}
 				price={card.price}
 				description={card.description}
-				image={popupImage(card)}
+				images={popupImages(card)}
 				imageFit={portrait ? 'cover' : 'contain'}
 				open={openIndex === i}
 				onclose={() => (openIndex = null)}

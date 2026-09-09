@@ -64,8 +64,8 @@ export interface Card {
 	link: ApiLink | null;
 	/** Rich text HTML; when non-empty the card opens a pop-up showing it. */
 	description: string;
-	/** Shown in the pop-up instead of `image`; never rendered without a description. */
-	detail_image: ApiImage | null;
+	/** Shown in the pop-up instead of `image` (several make a slider); never rendered without a description. */
+	detail_images: ApiImage[];
 }
 
 export interface CardGridValue {

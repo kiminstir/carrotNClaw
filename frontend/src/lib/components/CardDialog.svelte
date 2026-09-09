@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { ApiImage } from '$lib/api/types';
-	import Picture from './Picture.svelte';
-	import { PORTRAIT_ASPECT, coverSizes, focalPositionStyle } from '$lib/blocks/cards';
+	import DialogSlider from './DialogSlider.svelte';
 
 	// Detail pop-up for a card, built on the native <dialog> like Lightbox: the top layer escapes
 	// ancestor transforms, Escape closes it, focus is trapped while open and restored on close.
@@ -13,7 +12,7 @@
 		subtitle = '',
 		price = '',
 		description,
-		image = null,
+		images = [],
 		imageFit = 'contain',
 		open = false,
 		onclose
@@ -23,19 +22,16 @@
 		subtitle?: string;
 		price?: string;
 		description: string;
-		image?: ApiImage | null;
+		/** Several photos become a slider; one is shown as a plain figure. */
+		images?: ApiImage[];
 		/** cover: 3:4 portrait crop around the focal point (photos); contain: shown whole (artwork). */
 		imageFit?: 'cover' | 'contain';
 		open?: boolean;
 		onclose: () => void;
 	} = $props();
-	const cover = $derived(image !== null && imageFit === 'cover');
-	const imageStyle = $derived(image && cover ? focalPositionStyle(image) : '');
+	const hasImages = $derived(images.length > 0);
 	// Side by side the figure is up to 46% of a 76rem panel; stacked it is the full panel.
 	const boxSizes = '(min-width: 768px) 35rem, 100vw';
-	const imageSizes = $derived(
-		image && cover ? coverSizes(boxSizes, image, PORTRAIT_ASPECT) : boxSizes
-	);
 	let dialog: HTMLDialogElement | undefined = $state();
 
 	$effect(() => {
@@ -59,7 +55,7 @@
 	{onclose}
 	onclick={onBackdropClick}
 >
-	<article class="card-dialog-panel" class:has-image={image !== null}>
+	<article class="card-dialog-panel" class:has-image={hasImages}>
 		<button
 			type="button"
 			class="card-dialog-close"
@@ -75,10 +71,9 @@
 				/>
 			</svg>
 		</button>
-		{#if image}
+		{#if hasImages}
 			<figure class="card-dialog-figure fit-{imageFit}">
-				<!-- Hidden dialogs are display:none, so the lazy image only loads once opened. -->
-				<Picture {image} sizes={imageSizes} class="card-dialog-image" style={imageStyle} />
+				<DialogSlider {images} fit={imageFit} sizes={boxSizes} />
 			</figure>
 		{/if}
 		<div class="card-dialog-body">
@@ -145,32 +140,21 @@
 			transition: none;
 		}
 	}
+	/* The slider sizes the photos: whole for artwork, a 3:4 cover crop for portraits. The figure
+	   sets the box and, via --photo-max-height, how tall a whole artwork may grow. */
 	.card-dialog-figure {
+		--photo-max-height: 45vh;
 		margin: 4px 4px 0;
 		display: grid;
 		place-items: center;
+		overflow: hidden;
 		background: #0000003d;
 		border-radius: 3px 3px 0 0;
-	}
-	/* Artwork is shown whole; a photo gets a portrait crop that keeps the focal point in view. */
-	.card-dialog-figure :global(.card-dialog-image) {
-		display: block;
-		width: 100%;
-		height: auto;
-		max-height: 45vh;
-		object-fit: contain;
 	}
 	.card-dialog-figure.fit-cover {
 		position: relative;
 		aspect-ratio: 3 / 4;
 		max-height: 55vh;
-	}
-	.card-dialog-figure.fit-cover :global(.card-dialog-image) {
-		position: absolute;
-		inset: 0;
-		height: 100%;
-		max-height: none;
-		object-fit: cover; /* object-position comes from the image's focal point */
 	}
 	.card-dialog-body {
 		display: flex;
@@ -222,12 +206,10 @@
 			grid-template-columns: var(--figure-width) minmax(0, 1fr);
 		}
 		.card-dialog-figure {
+			--photo-max-height: calc(100vh - 2 * var(--gutter) - 8px);
 			margin: 4px 0 4px 4px;
 			align-self: stretch;
 			border-radius: 3px 0 0 3px;
-		}
-		.card-dialog-figure :global(.card-dialog-image) {
-			max-height: calc(100vh - 2 * var(--gutter) - 8px);
 		}
 		/* Side by side, the 3:4 figure sets the panel height; longer text stretches it and the
 		   cover crop simply shows a little more of the photo. */

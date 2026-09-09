@@ -5,7 +5,7 @@ import {
 	coverSizes,
 	focalPositionStyle,
 	hasDescription,
-	popupImage
+	popupImages
 } from './cards';
 
 function image(overrides: Partial<ApiImage> = {}): ApiImage {
@@ -71,16 +71,17 @@ describe('hasDescription', () => {
 	});
 });
 
-describe('popupImage', () => {
+describe('popupImages', () => {
 	const card = image({ id: 1 });
-	const detail = image({ id: 2 });
+	const first = image({ id: 2 });
+	const second = image({ id: 3 });
 
-	it('prefers the dedicated pop-up image', () => {
-		expect(popupImage({ image: card, detail_image: detail })).toBe(detail);
+	it('uses the dedicated pop-up photos, in order', () => {
+		expect(popupImages({ image: card, detail_images: [first, second] })).toEqual([first, second]);
 	});
 
-	it('falls back to the card image, then to nothing', () => {
-		expect(popupImage({ image: card, detail_image: null })).toBe(card);
-		expect(popupImage({ image: null, detail_image: null })).toBeNull();
+	it('falls back to the card image alone, then to nothing', () => {
+		expect(popupImages({ image: card, detail_images: [] })).toEqual([card]);
+		expect(popupImages({ image: null, detail_images: [] })).toEqual([]);
 	});
 });

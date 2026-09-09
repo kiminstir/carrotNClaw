@@ -3,6 +3,8 @@
 Kept outside the migration files so they can be unit tested and reused.
 """
 
+import uuid
+
 from django.utils.deconstruct import deconstructible
 from wagtail.blocks.migrations.operations import BaseBlockOperation
 
@@ -60,3 +62,43 @@ class WrapSliderImagesOperation(BaseBlockOperation):
     @property
     def operation_name_fragment(self):
         return "wrap_slider_images_in_struct"
+
+
+@deconstructible
+class WrapCardDetailImageOperation(BaseBlockOperation):
+    """Turn each card's single `detail_image` into the `detail_images` ListBlock shape.
+
+    A set image becomes a one-item list, an empty slot an empty list. Cards may be stored
+    with the ListBlock item wrapper or, in seeds, as bare dicts; both are handled. Cards that
+    already carry `detail_images` are left alone. Point `block_path_str` at the StreamBlock
+    that contains the card grids ("" for the page body).
+    """
+
+    def apply(self, block_value):
+        wrapped = []
+        for child in block_value:
+            if child.get("type") != "card_grid" or not isinstance(child.get("value"), dict):
+                wrapped.append(child)
+                continue
+            cards = [self._migrate_card(card) for card in child["value"].get("cards", [])]
+            wrapped.append({**child, "value": {**child["value"], "cards": cards}})
+        return wrapped
+
+    def _migrate_card(self, card):
+        if not isinstance(card, dict):
+            return card
+        is_item = card.get("type") == "item" and isinstance(card.get("value"), dict)
+        value = card["value"] if is_item else card
+        if "detail_images" in value:
+            return card
+        rest = {k: v for k, v in value.items() if k != "detail_image"}
+        image = value.get("detail_image")
+        if isinstance(image, int):
+            image = {"image": image}
+        photos = [{"type": "item", "id": str(uuid.uuid4()), "value": image}] if image else []
+        migrated = {**rest, "detail_images": photos}
+        return {**card, "value": migrated} if is_item else migrated
+
+    @property
+    def operation_name_fragment(self):
+        return "wrap_card_detail_image_in_list"

@@ -185,12 +185,21 @@ class CardBlock(blocks.StructBlock):
         features=CARD_DESCRIPTION_FEATURES,
         help_text="When filled in, the card opens a pop-up with this text and the image.",
     )
-    detail_image = ApiImageBlock(
+    detail_images = blocks.ListBlock(
+        ApiImageBlock(),
         required=False,
-        label="Pop-up image",
-        help_text="Shown in the pop-up instead of the card image. Only visible when a "
-        "description is set.",
+        default=[],
+        max_num=10,
+        label="Pop-up photos",
+        help_text="Shown in the pop-up instead of the card image; several photos become a "
+        "slider. Only visible when a description is set.",
     )
+
+    def get_api_representation(self, value, context=None):
+        data = super().get_api_representation(value, context)
+        # An empty photo slot serializes as None; the slider has nothing to show for it.
+        data["detail_images"] = [i for i in data.get("detail_images") or [] if i is not None]
+        return data
 
 
 # Keys are consumed by frontend/src/lib/blocks/CardGrid.svelte; keep both in sync.

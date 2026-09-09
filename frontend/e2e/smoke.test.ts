@@ -216,3 +216,36 @@ test('mobile navigation closes after navigation and returns focus on Escape', as
 	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 	await expect(toggle).toBeFocused();
 });
+
+test('staff pop-up slides through its photos without a filmstrip or lightbox', async ({ page }) => {
+	await page.setViewportSize({ width: 1200, height: 900 });
+	await page.goto('/staff/');
+	const dialog = page.getByRole('dialog');
+	await expect(dialog).toBeHidden();
+	await page.locator('.card-open').first().click();
+	await expect(dialog).toBeVisible();
+
+	const slider = dialog.getByRole('group', { name: 'Photos' });
+	const dots = slider.locator('.slider-dot');
+	const count = await dots.count();
+	expect(count).toBeGreaterThan(1);
+	await expect(slider.getByRole('img')).toHaveCount(count);
+	await expect(dots.nth(0)).toHaveClass(/is-current/);
+	await expect(slider.getByTestId('dialog-slider-status')).toHaveText(`Photo 1 of ${count}`);
+	// Nothing to enlarge and no thumbnail strip inside the pop-up.
+	await expect(dialog.getByRole('button', { name: /^Enlarge image/ })).toHaveCount(0);
+	await expect(dialog.getByRole('button', { name: /^Show image/ })).toHaveCount(0);
+
+	await slider.getByRole('button', { name: 'Next photo' }).click();
+	await expect(dots.nth(1)).toHaveClass(/is-current/);
+	await expect(dots.nth(0)).not.toHaveClass(/is-current/);
+	await expect(slider.getByTestId('dialog-slider-status')).toHaveText(`Photo 2 of ${count}`);
+
+	await page.keyboard.press('ArrowLeft');
+	await expect(slider.getByTestId('dialog-slider-status')).toHaveText(`Photo 1 of ${count}`);
+	await slider.getByRole('button', { name: 'Previous photo' }).click();
+	await expect(slider.getByTestId('dialog-slider-status')).toHaveText(`Photo ${count} of ${count}`);
+
+	await page.keyboard.press('Escape');
+	await expect(dialog).toBeHidden();
+});
