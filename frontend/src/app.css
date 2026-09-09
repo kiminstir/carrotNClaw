@@ -90,9 +90,6 @@ p {
 	flex: 1;
 	padding-bottom: clamp(3rem, 7vw, 6rem);
 }
-.site-shell.has-player {
-	padding-bottom: 6rem;
-}
 .site-header {
 	position: sticky;
 	top: 0;
