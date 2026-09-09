@@ -35,13 +35,36 @@ Admin: http://localhost:8000/admin/ · Site: http://localhost:5173/
 | `just makemigrations` / `just migrate` | Django migrations |
 | `just up` / `just down` / `just logs` | Full production-like stack |
 
-## Deployment (single VPS)
+## Deployment
 
-1. Install Docker with the Compose plugin, clone the repo, `cp .env.example .env`.
-2. Set `SITE_DOMAIN` to your domain (DNS A/AAAA records must point at the server), a long `DJANGO_SECRET_KEY`, `DEBUG=false`, strong `POSTGRES_PASSWORD` and `DJANGO_SUPERUSER_PASSWORD`.
-3. `docker compose up -d --build`. Caddy obtains the HTTPS certificate automatically.
-4. Updates: `git pull && docker compose up -d --build`.
-5. Backups: the `pgdata` volume (database) and `media` volume (uploads). Database example: `docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql` (runs inside the container, where those variables are set; your host shell does not have them). Media example: `docker run --rm -v carrotnclaw_media:/data -v "$PWD":/backup alpine tar czf /backup/media.tgz -C /data .` — Compose prefixes volume names with the project directory name, so check the real name first with `docker volume ls | grep media`.
+Pushes to `develop` run `.github/workflows/develop.yml`: tests, then both images are built on the runner and pushed to GHCR, then the server pulls them and restarts (`main` will do the same for production once that server exists). The reusable pipeline in `deploy.yml` reads everything host-specific from a GitHub Environment of the same name, so `develop` and `production` use identical variable names with different values:
+
+| Kind | Name | Example |
+|---|---|---|
+| variable | `SITE_DOMAIN` | `dev.example.com` |
+| variable | `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH` | `example.com`, `deploy`, `/srv/carrotnclaw` |
+| variable | `DEPLOY_KNOWN_HOSTS` | output of `ssh-keyscan -t ed25519 <host>` |
+| variable | `POSTGRES_DB`, `POSTGRES_USER` | `carrot` |
+| variable | `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL` | |
+| variable | `GUNICORN_WORKERS`, `CADDY_HTTP_LISTEN`, `CADDY_HTTPS_LISTEN` | optional, see `.env.example` |
+| secret | `DEPLOY_SSH_KEY` | private key whose public half is in the deploy user's `authorized_keys` |
+| secret | `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, `DJANGO_SUPERUSER_PASSWORD` | |
+
+Images are tagged `sha-<short sha>` and `<environment>`. To roll back, re-run the workflow for an older commit, or on the server edit `BACKEND_IMAGE`/`FRONTEND_IMAGE` in `.env` and run `docker compose up -d --no-build`.
+
+### Server requirements
+
+- Docker with the Compose plugin; a non-root user in the `docker` group that owns the deploy directory.
+- Ports 80 and 443 reachable. If another service already owns 443 on the host, route TLS by SNI to Caddy (nginx `stream` with `ssl_preread` and `proxy_protocol on`) and set `CADDY_HTTPS_LISTEN=127.0.0.1:4443`; the Caddyfile accepts PROXY protocol from private addresses so client IPs are preserved.
+- DNS for `SITE_DOMAIN` pointing at the server before the first deploy; Caddy obtains the certificate automatically.
+
+### Manual deploy
+
+`cp .env.example .env`, set `SITE_DOMAIN`, `DEBUG=false`, a long `DJANGO_SECRET_KEY`, strong `POSTGRES_PASSWORD` and `DJANGO_SUPERUSER_PASSWORD`, then `docker compose up -d --build`.
+
+### Backups
+
+The `pgdata` volume (database) and `media` volume (uploads). Database: `docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql` (runs inside the container, where those variables are set). Media: `docker run --rm -v carrotnclaw_media:/data -v "$PWD":/backup alpine tar czf /backup/media.tgz -C /data .` — Compose prefixes volume names with the project directory name, so check the real name first with `docker volume ls | grep media`.
 
 ## Editing content (for editors)
 

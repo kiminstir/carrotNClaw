@@ -1,0 +1,218 @@
+name: Deploy
+
+# Reusable pipeline: test -> build images on the runner -> pull and restart on the server.
+# Callers pick the GitHub Environment (develop, production); every host-specific value
+# comes from that environment's variables and secrets, so the same names work for both.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub Environment holding the target's variables and secrets
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: carrot
+          POSTGRES_USER: carrot
+          POSTGRES_PASSWORD: carrot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U carrot -d carrot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DJANGO_SECRET_KEY: ci-only-not-a-secret
+      DATABASE_URL: postgres://carrot:carrot@localhost:5432/carrot
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Backend dependencies
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: Backend lint
+        working-directory: backend
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Backend migrations are committed
+        working-directory: backend
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: Backend tests
+        working-directory: backend
+        run: uv run pytest
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Frontend lint and type check
+        working-directory: frontend
+        run: |
+          pnpm lint
+          pnpm check
+
+      - name: Frontend tests
+        working-directory: frontend
+        run: pnpm test
+
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      image_prefix: ${{ steps.names.outputs.image_prefix }}
+      tag: ${{ steps.names.outputs.tag }}
+    steps:
+      - id: names
+        run: |
+          echo "image_prefix=${REGISTRY}/${OWNER,,}/carrotnclaw" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+  build:
+    needs: [test, prepare]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.component }}
+          push: true
+          provenance: false
+          tags: |
+            ${{ needs.prepare.outputs.image_prefix }}-${{ matrix.component }}:${{ needs.prepare.outputs.tag }}
+            ${{ needs.prepare.outputs.image_prefix }}-${{ matrix.component }}:${{ inputs.environment }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,scope=${{ matrix.component }},mode=max
+
+  deploy:
+    needs: [build, prepare]
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: https://${{ vars.SITE_DOMAIN }}
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_SSH_PORT || 22 }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Render server .env
+        run: |
+          cat > "$RUNNER_TEMP/deploy.env" <<'EOF'
+          SITE_DOMAIN=${{ vars.SITE_DOMAIN }}
+          DEBUG=false
+          DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          POSTGRES_DB=${{ vars.POSTGRES_DB }}
+          POSTGRES_USER=${{ vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          DJANGO_SUPERUSER_USERNAME=${{ vars.DJANGO_SUPERUSER_USERNAME }}
+          DJANGO_SUPERUSER_EMAIL=${{ vars.DJANGO_SUPERUSER_EMAIL }}
+          DJANGO_SUPERUSER_PASSWORD=${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+          GUNICORN_WORKERS=${{ vars.GUNICORN_WORKERS || 3 }}
+          CADDY_HTTP_LISTEN=${{ vars.CADDY_HTTP_LISTEN || 80 }}
+          CADDY_HTTPS_LISTEN=${{ vars.CADDY_HTTPS_LISTEN || 443 }}
+          BACKEND_IMAGE=${{ needs.prepare.outputs.image_prefix }}-backend:${{ needs.prepare.outputs.tag }}
+          FRONTEND_IMAGE=${{ needs.prepare.outputs.image_prefix }}-frontend:${{ needs.prepare.outputs.tag }}
+          EOF
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ vars.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host target
+            HostName $DEPLOY_HOST
+            Port $DEPLOY_PORT
+            User $DEPLOY_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Upload compose files
+        run: |
+          scp -q docker-compose.yml Caddyfile "target:$DEPLOY_PATH/"
+          scp -q "$RUNNER_TEMP/deploy.env" "target:$DEPLOY_PATH/.env"
+          ssh target "chmod 600 '$DEPLOY_PATH/.env'"
+
+      - name: Log the server in to the registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" \
+            | ssh target "docker login '$REGISTRY' -u '${{ github.actor }}' --password-stdin"
+
+      - name: Pull images and restart
+        run: |
+          ssh target "set -euo pipefail
+            cd '$DEPLOY_PATH'
+            docker compose pull --quiet backend frontend
+            docker compose up -d --no-build --remove-orphans --wait --wait-timeout 300
+            docker image prune -f >/dev/null
+            docker compose ps"
+
+      - name: Log the server out of the registry
+        if: always()
+        run: ssh target "docker logout '$REGISTRY'" || true
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://${{ vars.SITE_DOMAIN }}/" || true)
+            [ "$code" = "200" ] && { echo "HTTP $code"; exit 0; }
+            echo "attempt $i: HTTP $code"; sleep 10
+          done
+          exit 1

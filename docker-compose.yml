@@ -15,6 +15,7 @@ services:
       retries: 12
 
   backend:
+    image: ${BACKEND_IMAGE:-carrotnclaw-backend:local}
     build: ./backend
     restart: unless-stopped
     env_file: .env
@@ -43,6 +44,7 @@ services:
       start_period: 30s
 
   frontend:
+    image: ${FRONTEND_IMAGE:-carrotnclaw-frontend:local}
     build: ./frontend
     restart: unless-stopped
     environment:
@@ -57,9 +59,8 @@ services:
     image: caddy:2.11-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "${CADDY_HTTP_LISTEN:-80}:80"
+      - "${CADDY_HTTPS_LISTEN:-443}:443"
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN}
     volumes:
