@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { SliderImage } from '$lib/api/types';
 	import Picture from './Picture.svelte';
+	import { track } from '$lib/analytics';
 
 	// Full-viewport image viewer built on the native <dialog>: the top layer escapes any ancestor
 	// transform, Escape closes it, focus is trapped while open and restored to the trigger on
@@ -25,6 +26,7 @@
 
 	function step(delta: number) {
 		index = (index + delta + items.length) % items.length;
+		track('lightbox-arrow', { direction: delta > 0 ? 'next' : 'prev' });
 	}
 
 	function onKeydown(event: KeyboardEvent) {

@@ -1,17 +1,36 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
+	import { env } from '$env/dynamic/public';
 	import { fade } from 'svelte/transition';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import AudioPlayer from '$lib/components/AudioPlayer.svelte';
+	import { outboundHost, track } from '$lib/analytics';
 
 	let { data, children } = $props();
 	const showPlayer = $derived(data.settings.music.enabled && data.settings.music.tracks.length > 0);
+
+	// One listener covers every link that leaves the site (footer socials, CMS-authored links),
+	// so components need not know about analytics.
+	$effect(() => {
+		const onClick = (event: MouseEvent) => {
+			const link = (event.target as Element | null)?.closest('a[href]');
+			if (!(link instanceof HTMLAnchorElement)) return;
+			const host = outboundHost(link.getAttribute('href') ?? '', location.host);
+			if (host) track('outbound-link', { host, href: link.href });
+		};
+		document.addEventListener('click', onClick);
+		return () => document.removeEventListener('click', onClick);
+	});
 </script>
 
 <svelte:head>
+	{#if env.PUBLIC_UMAMI_WEBSITE_ID}
+		<!-- Umami is proxied under /stats/ on this origin; see Caddyfile and docker-compose.yml -->
+		<script defer src="/stats/tavern.js" data-website-id={env.PUBLIC_UMAMI_WEBSITE_ID}></script>
+	{/if}
 	<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
 	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 	<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />

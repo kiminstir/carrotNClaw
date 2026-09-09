@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import type { SiteSettings } from '$lib/api/types';
+	import { track as trackEvent } from '$lib/analytics';
 
 	let { music }: { music: SiteSettings['music'] } = $props();
 
@@ -62,22 +63,27 @@
 
 	function toggle() {
 		if (!audio) return;
-		if (audio.paused) play();
-		else {
+		if (audio.paused) {
+			trackEvent('music-play', { track: track.title });
+			play();
+		} else {
+			trackEvent('music-pause', { track: track.title });
 			audio.pause();
 			playing = false;
 		}
 	}
 
-	async function skip(delta: number) {
+	async function skip(delta: number, byUser = false) {
 		const wasPlaying = playing;
 		index = (index + delta + music.tracks.length) % music.tracks.length;
+		if (byUser) trackEvent(delta > 0 ? 'music-next' : 'music-prev', { track: track.title });
 		await tick();
 		if (wasPlaying) play();
 	}
 
 	function toggleMute() {
 		muted = !muted;
+		trackEvent(muted ? 'music-mute' : 'music-unmute');
 		try {
 			localStorage.setItem(STORAGE_KEY, muted ? '1' : '0');
 		} catch {
@@ -110,7 +116,7 @@
 		<span class="sign-chain sign-chain-left" aria-hidden="true"></span>
 		<span class="sign-chain sign-chain-right" aria-hidden="true"></span>
 		<div class="sign-plank">
-			<button onclick={() => skip(-1)} aria-label="Previous track">
+			<button onclick={() => skip(-1, true)} aria-label="Previous track">
 				<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
 					<path d="M17 6v12L9 12z" fill="currentColor" />
 					<path d="M7 6.5v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -134,7 +140,7 @@
 					{/if}
 				</svg>
 			</button>
-			<button onclick={() => skip(1)} aria-label="Next track">
+			<button onclick={() => skip(1, true)} aria-label="Next track">
 				<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
 					<path d="M7 6v12l8-6z" fill="currentColor" />
 					<path d="M17 6.5v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" />

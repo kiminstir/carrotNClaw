@@ -27,6 +27,12 @@
 		file_server
 	}
 
+	# Analytics tracker and its collect endpoint, served from this origin so blockers
+	# see nothing third-party. The dashboard itself lives on STATS_DOMAIN below.
+	handle_path /stats/* {
+		reverse_proxy umami:3000
+	}
+
 	@backend path /admin* /api/* /django-admin* /documents/*
 	handle @backend {
 		reverse_proxy backend:8000
@@ -35,4 +41,9 @@
 	handle {
 		reverse_proxy frontend:3000
 	}
+}
+
+{$STATS_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy umami:3000
 }

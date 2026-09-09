@@ -8,6 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres-init/umami.sql:/docker-entrypoint-initdb.d/10-umami.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -51,9 +52,33 @@ services:
       PORT: "3000"
       ORIGIN: https://${SITE_DOMAIN}
       WAGTAIL_INTERNAL_URL: http://backend:8000
+      # Empty disables the analytics script
+      PUBLIC_UMAMI_WEBSITE_ID: ${PUBLIC_UMAMI_WEBSITE_ID:-}
     depends_on:
       backend:
         condition: service_healthy
+
+  umami:
+    image: ghcr.io/umami-software/umami:3.3.1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET}
+      TWO_FACTOR_ENCRYPTION_KEY: ${UMAMI_TWO_FACTOR_KEY}
+      DISABLE_TELEMETRY: "1"
+      # Renamed so ad blockers do not match the defaults; the frontend loads /stats/tavern.js
+      TRACKER_SCRIPT_NAME: tavern.js
+      COLLECT_API_ENDPOINT: /api/tavern
+    mem_limit: 400m
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:3000/api/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
 
   caddy:
     image: caddy:2.11-alpine
@@ -63,6 +88,7 @@ services:
       - "${CADDY_HTTPS_LISTEN:-443}:443"
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN}
+      STATS_DOMAIN: ${STATS_DOMAIN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -72,6 +98,7 @@ services:
     depends_on:
       - backend
       - frontend
+      - umami
 
 volumes:
   pgdata:

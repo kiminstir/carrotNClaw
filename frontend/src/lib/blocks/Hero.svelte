@@ -5,6 +5,7 @@
 	import Branch from '$lib/components/Branch.svelte';
 	import TavernMark from '$lib/components/TavernMark.svelte';
 	import { tilt } from '$lib/actions/tilt';
+	import { track } from '$lib/analytics';
 	import { fireflies, fireflyStyle } from './fireflies';
 	let { value }: { value: HeroValue } = $props();
 	const motes = fireflies();
@@ -38,6 +39,7 @@
 				target={value.cta.external ? '_blank' : undefined}
 				rel={value.cta.external ? 'noopener' : undefined}
 				class="tavern-button"
+				onclick={() => track('cta-click', { label: value.cta!.label, href: value.cta!.href })}
 			>
 				{value.cta.label}<span aria-hidden="true">↗</span>
 			</a>

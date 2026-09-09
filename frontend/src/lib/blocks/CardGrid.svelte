@@ -3,6 +3,7 @@
 	import Picture from '$lib/components/Picture.svelte';
 	import Branch from '$lib/components/Branch.svelte';
 	import CardDialog from '$lib/components/CardDialog.svelte';
+	import { track } from '$lib/analytics';
 	import {
 		PORTRAIT_ASPECT,
 		coverSizes,
@@ -27,6 +28,11 @@
 	const portrait = $derived(value.style === 'portrait');
 	// Index of the card whose pop-up is open; the dialog's close event clears it.
 	let openIndex: number | null = $state(null);
+
+	function openCard(i: number) {
+		openIndex = i;
+		track('card-open', { title: value.cards[i].title });
+	}
 </script>
 
 <div class="card-grid mx-auto grid max-w-6xl {cols}">
@@ -70,7 +76,7 @@
 								class="card-open"
 								aria-haspopup="dialog"
 								aria-controls={dialogId}
-								onclick={() => (openIndex = i)}>{card.title}</button
+								onclick={() => openCard(i)}>{card.title}</button
 							>
 						{:else}
 							{card.title}

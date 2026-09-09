@@ -42,6 +42,8 @@ Pushes to `develop` run `.github/workflows/develop.yml`: tests, then both images
 | Kind | Name | Example |
 |---|---|---|
 | variable | `SITE_DOMAIN` | `dev.example.com` |
+| variable | `STATS_DOMAIN` | `stats.dev.example.com` (analytics dashboard) |
+| variable | `PUBLIC_UMAMI_WEBSITE_ID` | add once the website exists in the dashboard (absent = tracking off), see Analytics |
 | variable | `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH` | `example.com`, `deploy`, `/srv/carrotnclaw` |
 | variable | `DEPLOY_KNOWN_HOSTS` | output of `ssh-keyscan -t ed25519 <host>` |
 | variable | `POSTGRES_DB`, `POSTGRES_USER` | `carrot` |
@@ -49,6 +51,7 @@ Pushes to `develop` run `.github/workflows/develop.yml`: tests, then both images
 | variable | `GUNICORN_WORKERS`, `CADDY_HTTP_LISTEN`, `CADDY_HTTPS_LISTEN` | optional, see `.env.example` |
 | secret | `DEPLOY_SSH_KEY` | private key whose public half is in the deploy user's `authorized_keys` |
 | secret | `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, `DJANGO_SUPERUSER_PASSWORD` | |
+| secret | `UMAMI_APP_SECRET`, `UMAMI_TWO_FACTOR_KEY` | `openssl rand -base64 48`, `openssl rand -hex 32` |
 
 Images are tagged `sha-<short sha>` and `<environment>`. To roll back, re-run the workflow for an older commit, or on the server edit `BACKEND_IMAGE`/`FRONTEND_IMAGE` in `.env` and run `docker compose up -d --no-build`.
 
@@ -56,7 +59,13 @@ Images are tagged `sha-<short sha>` and `<environment>`. To roll back, re-run th
 
 - Docker with the Compose plugin; a non-root user in the `docker` group that owns the deploy directory.
 - Ports 80 and 443 reachable. If another service already owns 443 on the host, route TLS by SNI to Caddy (nginx `stream` with `ssl_preread` and `proxy_protocol on`) and set `CADDY_HTTPS_LISTEN=127.0.0.1:4443`; the Caddyfile accepts PROXY protocol from private addresses so client IPs are preserved.
-- DNS for `SITE_DOMAIN` pointing at the server before the first deploy; Caddy obtains the certificate automatically.
+- DNS for `SITE_DOMAIN` and `STATS_DOMAIN` pointing at the server before the first deploy; Caddy obtains the certificates automatically.
+
+### Analytics
+
+[Umami](https://umami.is) runs as the `umami` service, storing data in its own `umami` database inside the same Postgres. The dashboard is `https://<STATS_DOMAIN>/`; the tracker script and its collect endpoint are proxied under `https://<SITE_DOMAIN>/stats/` so nothing third-party is loaded and no cookies are set.
+
+First time: log in with `admin` / `umami` and change the password at once (Settings → Profile). Then Settings → Websites → Add, domain = `SITE_DOMAIN`, copy the Website ID into the `PUBLIC_UMAMI_WEBSITE_ID` variable and redeploy. The frontend renders the script only when that variable is set, so local development is never tracked. Tracked events: page views (including in-app navigation), `music-*` on the player, `gallery-*` / `lightbox-arrow` on images, `cta-click`, `card-open`, `outbound-link`. To leave your own visits out, run `localStorage.setItem('umami.disabled', '1')` in the browser console on the site.
 
 ### Manual deploy
 
@@ -64,7 +73,7 @@ Images are tagged `sha-<short sha>` and `<environment>`. To roll back, re-run th
 
 ### Backups
 
-The `pgdata` volume (database) and `media` volume (uploads). Database: `docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql` (runs inside the container, where those variables are set). Media: `docker run --rm -v carrotnclaw_media:/data -v "$PWD":/backup alpine tar czf /backup/media.tgz -C /data .` — Compose prefixes volume names with the project directory name, so check the real name first with `docker volume ls | grep media`.
+The `pgdata` volume (database) and `media` volume (uploads). Database: `docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql` (runs inside the container, where those variables are set); the analytics data is a second database in the same volume, `pg_dump -U "$POSTGRES_USER" umami`. Media: `docker run --rm -v carrotnclaw_media:/data -v "$PWD":/backup alpine tar czf /backup/media.tgz -C /data .` — Compose prefixes volume names with the project directory name, so check the real name first with `docker volume ls | grep media`.
 
 ## Editing content (for editors)
 
@@ -78,4 +87,4 @@ Log in at `https://<domain>/admin/`.
 
 ## Architecture
 
-Headless Wagtail exposes pages and settings as JSON (`/api/v2/…`). SvelteKit renders pages on the server from that JSON and maps each block type to a component in `frontend/src/lib/blocks/`. Caddy fronts everything: `/admin`, `/api`, `/django-admin`, `/documents` go to Django; `/media` and `/static` are served from volumes; everything else goes to SvelteKit. Block definitions live in `backend/apps/pages/blocks.py` and their TypeScript mirror in `frontend/src/lib/api/types.ts`; keep them in sync.
+Headless Wagtail exposes pages and settings as JSON (`/api/v2/…`). SvelteKit renders pages on the server from that JSON and maps each block type to a component in `frontend/src/lib/blocks/`. Caddy fronts everything: `/admin`, `/api`, `/django-admin`, `/documents` go to Django; `/media` and `/static` are served from volumes; `/stats` goes to Umami; everything else goes to SvelteKit. Block definitions live in `backend/apps/pages/blocks.py` and their TypeScript mirror in `frontend/src/lib/api/types.ts`; keep them in sync.

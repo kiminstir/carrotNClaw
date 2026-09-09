@@ -147,10 +147,25 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # An empty site address in the Caddyfile stops Caddy from starting at all, so refuse to
+      # deploy until the environment is complete rather than take the whole site down.
+      - name: Required environment values are present
+        run: |
+          missing=""
+          [ -n "${{ vars.SITE_DOMAIN }}" ] || missing="$missing SITE_DOMAIN"
+          [ -n "${{ vars.STATS_DOMAIN }}" ] || missing="$missing STATS_DOMAIN"
+          [ -n "${{ secrets.UMAMI_APP_SECRET }}" ] || missing="$missing UMAMI_APP_SECRET"
+          [ -n "${{ secrets.UMAMI_TWO_FACTOR_KEY }}" ] || missing="$missing UMAMI_TWO_FACTOR_KEY"
+          [ -z "$missing" ] || { echo "Missing in GitHub Environment '${{ inputs.environment }}':$missing"; exit 1; }
+
       - name: Render server .env
         run: |
           cat > "$RUNNER_TEMP/deploy.env" <<'EOF'
           SITE_DOMAIN=${{ vars.SITE_DOMAIN }}
+          STATS_DOMAIN=${{ vars.STATS_DOMAIN }}
+          PUBLIC_UMAMI_WEBSITE_ID=${{ vars.PUBLIC_UMAMI_WEBSITE_ID }}
+          UMAMI_APP_SECRET=${{ secrets.UMAMI_APP_SECRET }}
+          UMAMI_TWO_FACTOR_KEY=${{ secrets.UMAMI_TWO_FACTOR_KEY }}
           DEBUG=false
           DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
           POSTGRES_DB=${{ vars.POSTGRES_DB }}
@@ -184,7 +199,7 @@ jobs:
 
       - name: Upload compose files
         run: |
-          scp -q docker-compose.yml Caddyfile "target:$DEPLOY_PATH/"
+          scp -q -r docker-compose.yml Caddyfile deploy "target:$DEPLOY_PATH/"
           scp -q "$RUNNER_TEMP/deploy.env" "target:$DEPLOY_PATH/.env"
           ssh target "chmod 600 '$DEPLOY_PATH/.env'"
 
@@ -199,7 +214,11 @@ jobs:
         run: |
           ssh target "set -euo pipefail
             cd '$DEPLOY_PATH'
-            docker compose pull --quiet backend frontend
+            docker compose pull --quiet backend frontend umami
+            docker compose up -d --no-build --wait db
+            # Volumes older than the analytics service get the umami database here (fresh ones via initdb)
+            docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"' \
+              < deploy/postgres-init/umami.sql
             docker compose up -d --no-build --remove-orphans --wait --wait-timeout 300
             docker image prune -f >/dev/null
             docker compose ps"
@@ -210,9 +229,14 @@ jobs:
 
       - name: Smoke test
         run: |
-          for i in $(seq 1 12); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://${{ vars.SITE_DOMAIN }}/" || true)
-            [ "$code" = "200" ] && { echo "HTTP $code"; exit 0; }
-            echo "attempt $i: HTTP $code"; sleep 10
-          done
-          exit 1
+          probe() {
+            for i in $(seq 1 12); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1" || true)
+              [ "$code" = "200" ] && { echo "$1 HTTP $code"; return 0; }
+              echo "attempt $i: $1 HTTP $code"; sleep 10
+            done
+            return 1
+          }
+          probe "https://${{ vars.SITE_DOMAIN }}/"
+          probe "https://${{ vars.SITE_DOMAIN }}/stats/api/heartbeat"
+          probe "https://${{ vars.STATS_DOMAIN }}/api/heartbeat"

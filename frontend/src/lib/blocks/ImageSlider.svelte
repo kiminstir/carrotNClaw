@@ -7,6 +7,7 @@
 	import Picture from '$lib/components/Picture.svelte';
 	import Branch from '$lib/components/Branch.svelte';
 	import Lightbox from '$lib/components/Lightbox.svelte';
+	import { track } from '$lib/analytics';
 
 	let { value }: { value: ImageSliderValue } = $props();
 	const images = $derived(value.images.filter((i): i is SliderImage => i !== null));
@@ -23,6 +24,18 @@
 	function enlarge(index: number) {
 		lightboxIndex = index;
 		lightboxOpen = true;
+		track('gallery-zoom', { index, alt: images[index].image.alt });
+	}
+
+	function arrow(direction: 'prev' | 'next') {
+		if (direction === 'prev') embla?.scrollPrev();
+		else embla?.scrollNext();
+		track('gallery-arrow', { direction });
+	}
+
+	function pick(index: number) {
+		embla?.scrollTo(index);
+		track('gallery-thumb', { index });
 	}
 	const plugins = $derived(
 		value.autoplay && !prefersReducedMotion.current && !paused
@@ -82,12 +95,12 @@
 				<button
 					class="absolute top-1/2 left-2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-surface text-2xl shadow-sm"
 					aria-label="Previous image"
-					onclick={() => embla?.scrollPrev()}>‹</button
+					onclick={() => arrow('prev')}>‹</button
 				>
 				<button
 					class="absolute top-1/2 right-2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-surface text-2xl shadow-sm"
 					aria-label="Next image"
-					onclick={() => embla?.scrollNext()}>›</button
+					onclick={() => arrow('next')}>›</button
 				>
 			{/if}
 		</div>
@@ -100,7 +113,7 @@
 						class:is-current={i === selected}
 						aria-current={i === selected ? 'true' : undefined}
 						aria-label="Show image {i + 1}{item.image.alt ? `: ${item.image.alt}` : ''}"
-						onclick={() => embla?.scrollTo(i)}
+						onclick={() => pick(i)}
 					>
 						<Picture image={item.image} sizes="96px" class="thumb-img" />
 					</button>
