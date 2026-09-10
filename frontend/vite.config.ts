@@ -2,10 +2,13 @@ import { defineConfig } from 'vitest/config';
 import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { sentrySvelteKit } from '@sentry/sveltekit';
 
 export default defineConfig({
 	plugins: [
 		tailwindcss(),
+		// Source-map upload is enabled later, once the Bugsink instance has an auth token.
+		sentrySvelteKit({ autoUploadSourceMaps: false, autoInstrument: false }),
 		sveltekit({
 			compilerOptions: {
 				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.

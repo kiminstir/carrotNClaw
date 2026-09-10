@@ -57,6 +57,11 @@ services:
       WAGTAIL_INTERNAL_URL: http://backend:8000
       # Empty disables the analytics script
       PUBLIC_UMAMI_WEBSITE_ID: ${PUBLIC_UMAMI_WEBSITE_ID:-}
+      # Error reporting; both DSNs point at the Bugsink "frontend" project. Empty disables it.
+      SENTRY_DSN: ${SENTRY_DSN_FRONTEND:-}
+      PUBLIC_SENTRY_DSN: ${PUBLIC_SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
+      PUBLIC_SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
     depends_on:
       backend:
         condition: service_healthy

@@ -8,7 +8,8 @@ COPY . .
 RUN pnpm build && pnpm prune --prod
 
 FROM node:24-alpine
-ENV NODE_ENV=production
+ARG APP_RELEASE=dev
+ENV NODE_ENV=production APP_RELEASE=$APP_RELEASE PUBLIC_APP_RELEASE=$APP_RELEASE
 WORKDIR /app
 COPY --from=build /app/build ./build
 COPY --from=build /app/node_modules ./node_modules
