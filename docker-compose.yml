@@ -28,6 +28,8 @@ services:
       DJANGO_ALLOWED_HOSTS: ${SITE_DOMAIN},backend,localhost
       BACKEND_PUBLIC_URL: https://${SITE_DOMAIN}
       FRONTEND_URL: https://${SITE_DOMAIN}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
     volumes:
       - media:/app/media
       - static:/app/staticfiles

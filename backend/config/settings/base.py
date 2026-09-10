@@ -2,6 +2,8 @@ from pathlib import Path
 
 import environ
 
+from config.monitoring import init_sentry
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # backend/
 REPO_DIR = BASE_DIR.parent
 
@@ -122,3 +124,7 @@ WAGTAIL_HEADLESS_PREVIEW = {
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
 }
+
+# --- Error reporting (Bugsink via the Sentry SDK; off without SENTRY_DSN) ----
+
+init_sentry(env)

@@ -10,6 +10,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+ARG APP_RELEASE=dev
+ENV APP_RELEASE=$APP_RELEASE
+
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
