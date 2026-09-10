@@ -75,7 +75,7 @@ First time: log in with `admin` / `umami` and change the password at once (Setti
 
 [Bugsink](https://www.bugsink.com) runs as the `bugsink` service (Sentry-compatible, one container, own `bugsink` database in the same Postgres). The dashboard is `https://<ERRORS_DOMAIN>/`. Both apps use the official Sentry SDKs and report only when a DSN is set, so local development and tests never report; tracing and replay are off.
 
-First time: log in with `BUGSINK_ADMIN_EMAIL` / `BUGSINK_ADMIN_PASSWORD`, create projects `backend` and `frontend`, copy the backend DSN into `SENTRY_DSN` and the frontend DSN into both `SENTRY_DSN_FRONTEND` and `PUBLIC_SENTRY_DSN`, then redeploy. Alerts: per project, Alerting Settings → Add → Telegram (bot token + chat ID); they fire on new issues, regressions and unmutes only. Smoke test on the server: `docker compose exec backend python manage.py shell -c "import sentry_sdk; sentry_sdk.capture_message('bugsink smoke')"`.
+First time: log in with `BUGSINK_ADMIN_EMAIL` / `BUGSINK_ADMIN_PASSWORD`, create projects `backend` and `frontend`, copy the backend DSN into `SENTRY_DSN` and the frontend DSN into both `SENTRY_DSN_FRONTEND` and `PUBLIC_SENTRY_DSN`, then redeploy. Alerts: per project, Alerting Settings → Add → Telegram (bot token + chat ID); they fire on new issues, regressions and unmutes only. Smoke test on the server: `docker compose exec backend python manage.py shell -c "import sentry_sdk; sentry_sdk.capture_message('bugsink smoke')"`. Events are tagged with the environment name (`SENTRY_ENVIRONMENT`, set to the GitHub Environment name by the workflow) and with the deployed image's `sha-…` tag as the release, which the images carry as `APP_RELEASE` / `PUBLIC_APP_RELEASE`.
 
 ### Manual deploy
 

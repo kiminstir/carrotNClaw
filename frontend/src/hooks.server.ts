@@ -11,5 +11,8 @@ const options = sentryOptions({
 });
 if (options) Sentry.init(options);
 
-export const handle = Sentry.sentryHandle();
+// injectFetchProxyScript: false — Kit >= 2.16 needs no fetch proxy, but the SDK's runtime
+// detection imports @sveltejs/kit, a devDependency pruned from this image, so that check
+// always throws and it would otherwise inject the proxy script into every SSR'd page.
+export const handle = Sentry.sentryHandle({ injectFetchProxyScript: false });
 export const handleError = Sentry.handleErrorWithSentry();
