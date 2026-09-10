@@ -110,6 +110,20 @@ export interface PageData {
 	meta: PageMeta;
 }
 
+/** One entry of the `/api/v2/pages/` listing, which carries meta only. */
+export interface PageSummary {
+	id: number;
+	title: string;
+	meta: {
+		type: string;
+		slug: string;
+		html_url: string | null;
+		first_published_at: string | null;
+		/** Exposed by our PagesAPIViewSet subclass; null until the page is published. */
+		last_published_at: string | null;
+	};
+}
+
 export interface Track {
 	id: number;
 	title: string;

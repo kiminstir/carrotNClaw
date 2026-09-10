@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import type { PageData, SiteSettings } from './types';
+import type { PageData, PageSummary, SiteSettings } from './types';
 
 type Fetch = typeof globalThis.fetch;
 
@@ -26,6 +26,30 @@ export async function getPageByPath(fetch: Fetch, base: string, path: string): P
 	if (detail.status === 404) error(404, 'Page not found');
 	if (!detail.ok) error(502, `CMS returned ${detail.status}`);
 	return (await detail.json()) as PageData;
+}
+
+/** Wagtail caps `limit` at WAGTAILAPI_LIMIT_MAX (50), so the listing has to be walked. */
+const LISTING_PAGE_SIZE = 50;
+
+/** Every live, publicly visible page, in Wagtail's default order. Used to build the sitemap. */
+export async function getAllPages(fetch: Fetch, base: string): Promise<PageSummary[]> {
+	const collected: PageSummary[] = [];
+	let total = Infinity;
+
+	while (collected.length < total) {
+		const url = `${base}/api/v2/pages/?limit=${LISTING_PAGE_SIZE}&offset=${collected.length}`;
+		const res = await fetch(url);
+		if (!res.ok) error(502, `CMS returned ${res.status}`);
+
+		const body = (await res.json()) as { meta: { total_count: number }; items: PageSummary[] };
+		// A short or empty batch means the CMS disagrees with its own count; stop rather than spin.
+		if (body.items.length === 0) break;
+
+		collected.push(...body.items);
+		total = body.meta.total_count;
+	}
+
+	return collected;
 }
 
 export async function getPreviewPage(

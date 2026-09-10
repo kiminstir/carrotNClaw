@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { clearSettingsCache, getPageByPath, getSiteSettings, normalizePath } from './client';
+import {
+	clearSettingsCache,
+	getAllPages,
+	getPageByPath,
+	getSiteSettings,
+	normalizePath
+} from './client';
 
 const BASE = 'http://backend.test';
 
@@ -64,6 +70,54 @@ describe('getPageByPath', () => {
 		await expect(
 			getPageByPath(fetch as unknown as typeof globalThis.fetch, BASE, 'missing')
 		).rejects.toMatchObject({ status: 404 });
+	});
+});
+
+describe('getAllPages', () => {
+	function listing(total: number, ids: number[]) {
+		return jsonResponse({
+			meta: { total_count: total },
+			items: ids.map((id) => ({ id, title: `Page ${id}`, meta: { slug: `p${id}` } }))
+		});
+	}
+
+	it('pages through the listing until every page is collected', async () => {
+		const first = Array.from({ length: 50 }, (_, i) => i + 1);
+		const fetch = vi
+			.fn()
+			.mockResolvedValueOnce(listing(52, first))
+			.mockResolvedValueOnce(listing(52, [51, 52]));
+
+		const pages = await getAllPages(fetch as unknown as typeof globalThis.fetch, BASE);
+
+		expect(pages.map((p) => p.id)).toEqual([...first, 51, 52]);
+		expect(fetch.mock.calls[0][0]).toBe(`${BASE}/api/v2/pages/?limit=50&offset=0`);
+		expect(fetch.mock.calls[1][0]).toBe(`${BASE}/api/v2/pages/?limit=50&offset=50`);
+	});
+
+	it('makes a single request when everything fits on one page', async () => {
+		const fetch = vi.fn().mockResolvedValueOnce(listing(2, [1, 2]));
+
+		await getAllPages(fetch as unknown as typeof globalThis.fetch, BASE);
+
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('stops instead of looping when the CMS returns no items', async () => {
+		const fetch = vi.fn().mockResolvedValue(listing(99, []));
+
+		const pages = await getAllPages(fetch as unknown as typeof globalThis.fetch, BASE);
+
+		expect(pages).toEqual([]);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('throws a 502 error when the CMS is unhappy', async () => {
+		const fetch = vi.fn().mockResolvedValue(new Response(null, { status: 500 }));
+
+		await expect(
+			getAllPages(fetch as unknown as typeof globalThis.fetch, BASE)
+		).rejects.toMatchObject({ status: 502 });
 	});
 });
 

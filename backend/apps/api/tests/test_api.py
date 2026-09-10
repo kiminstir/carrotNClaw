@@ -126,3 +126,10 @@ def test_site_settings_hours_lists_slots_as_weekday_index_and_hhmm(client, site)
             {"day": 6, "opens": "18:30", "closes": "23:00"},
         ],
     }
+
+
+def test_page_listing_exposes_last_published_at(client, site):
+    """The sitemap needs a real "modified" date, not the first-publish one."""
+    items = client.get("/api/v2/pages/").json()["items"]
+    assert items
+    assert all(item["meta"]["last_published_at"] for item in items)
