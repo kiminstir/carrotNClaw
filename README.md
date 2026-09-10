@@ -44,6 +44,9 @@ Pushes to `develop` run `.github/workflows/develop.yml`: tests, then both images
 | variable | `SITE_DOMAIN` | `dev.example.com` |
 | variable | `STATS_DOMAIN` | `stats.dev.example.com` (analytics dashboard) |
 | variable | `PUBLIC_UMAMI_WEBSITE_ID` | add once the website exists in the dashboard (absent = tracking off), see Analytics |
+| variable | `ERRORS_DOMAIN` | `bugs.dev.example.com` (error-tracking dashboard) |
+| variable | `BUGSINK_ADMIN_EMAIL` | first admin login for the dashboard |
+| variable | `SENTRY_DSN`, `SENTRY_DSN_FRONTEND`, `PUBLIC_SENTRY_DSN` | add once the projects exist in the dashboard (absent = reporting off), see Error tracking |
 | variable | `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH` | `example.com`, `deploy`, `/srv/carrotnclaw` |
 | variable | `DEPLOY_KNOWN_HOSTS` | output of `ssh-keyscan -t ed25519 <host>` |
 | variable | `POSTGRES_DB`, `POSTGRES_USER` | `carrot` |
@@ -52,6 +55,7 @@ Pushes to `develop` run `.github/workflows/develop.yml`: tests, then both images
 | secret | `DEPLOY_SSH_KEY` | private key whose public half is in the deploy user's `authorized_keys` |
 | secret | `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, `DJANGO_SUPERUSER_PASSWORD` | |
 | secret | `UMAMI_APP_SECRET`, `UMAMI_TWO_FACTOR_KEY` | `openssl rand -base64 48`, `openssl rand -hex 32` |
+| secret | `BUGSINK_SECRET_KEY`, `BUGSINK_ADMIN_PASSWORD` | `openssl rand -base64 50`, any strong password |
 
 Images are tagged `sha-<short sha>` and `<environment>`. To roll back, re-run the workflow for an older commit, or on the server edit `BACKEND_IMAGE`/`FRONTEND_IMAGE` in `.env` and run `docker compose up -d --no-build`.
 
@@ -59,7 +63,7 @@ Images are tagged `sha-<short sha>` and `<environment>`. To roll back, re-run th
 
 - Docker with the Compose plugin; a non-root user in the `docker` group that owns the deploy directory.
 - Ports 80 and 443 reachable. If another service already owns 443 on the host, route TLS by SNI to Caddy (nginx `stream` with `ssl_preread` and `proxy_protocol on`) and set `CADDY_HTTPS_LISTEN=127.0.0.1:4443`; the Caddyfile accepts PROXY protocol from private addresses so client IPs are preserved.
-- DNS for `SITE_DOMAIN` and `STATS_DOMAIN` pointing at the server before the first deploy; Caddy obtains the certificates automatically.
+- DNS for `SITE_DOMAIN`, `STATS_DOMAIN` and `ERRORS_DOMAIN` pointing at the server before the first deploy; Caddy obtains the certificates automatically.
 
 ### Analytics
 
@@ -67,13 +71,19 @@ Images are tagged `sha-<short sha>` and `<environment>`. To roll back, re-run th
 
 First time: log in with `admin` / `umami` and change the password at once (Settings → Profile). Then Settings → Websites → Add, domain = `SITE_DOMAIN`, copy the Website ID into the `PUBLIC_UMAMI_WEBSITE_ID` variable and redeploy. The frontend renders the script only when that variable is set, so local development is never tracked. Tracked events: page views (including in-app navigation), `music-*` on the player, `gallery-*` / `lightbox-arrow` on images, `cta-click`, `card-open`, `outbound-link`. To leave your own visits out, run `localStorage.setItem('umami.disabled', '1')` in the browser console on the site.
 
+### Error tracking
+
+[Bugsink](https://www.bugsink.com) runs as the `bugsink` service (Sentry-compatible, one container, own `bugsink` database in the same Postgres). The dashboard is `https://<ERRORS_DOMAIN>/`. Both apps use the official Sentry SDKs and report only when a DSN is set, so local development and tests never report; tracing and replay are off.
+
+First time: log in with `BUGSINK_ADMIN_EMAIL` / `BUGSINK_ADMIN_PASSWORD`, create projects `backend` and `frontend`, copy the backend DSN into `SENTRY_DSN` and the frontend DSN into both `SENTRY_DSN_FRONTEND` and `PUBLIC_SENTRY_DSN`, then redeploy. Alerts: per project, Alerting Settings → Add → Telegram (bot token + chat ID); they fire on new issues, regressions and unmutes only. Smoke test on the server: `docker compose exec backend python manage.py shell -c "import sentry_sdk; sentry_sdk.capture_message('bugsink smoke')"`.
+
 ### Manual deploy
 
 `cp .env.example .env`, set `SITE_DOMAIN`, `DEBUG=false`, a long `DJANGO_SECRET_KEY`, strong `POSTGRES_PASSWORD` and `DJANGO_SUPERUSER_PASSWORD`, then `docker compose up -d --build`.
 
 ### Backups
 
-The `pgdata` volume (database) and `media` volume (uploads). Database: `docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql` (runs inside the container, where those variables are set); the analytics data is a second database in the same volume, `pg_dump -U "$POSTGRES_USER" umami`. Media: `docker run --rm -v carrotnclaw_media:/data -v "$PWD":/backup alpine tar czf /backup/media.tgz -C /data .` — Compose prefixes volume names with the project directory name, so check the real name first with `docker volume ls | grep media`.
+The `pgdata` volume (database) and `media` volume (uploads). Database: `docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql` (runs inside the container, where those variables are set); the analytics and error-tracking data are further databases in the same volume, `pg_dump -U "$POSTGRES_USER" umami` and `pg_dump -U "$POSTGRES_USER" bugsink`. Media: `docker run --rm -v carrotnclaw_media:/data -v "$PWD":/backup alpine tar czf /backup/media.tgz -C /data .` — Compose prefixes volume names with the project directory name, so check the real name first with `docker volume ls | grep media`.
 
 ## Editing content (for editors)
 
@@ -87,4 +97,4 @@ Log in at `https://<domain>/admin/`.
 
 ## Architecture
 
-Headless Wagtail exposes pages and settings as JSON (`/api/v2/…`). SvelteKit renders pages on the server from that JSON and maps each block type to a component in `frontend/src/lib/blocks/`. Caddy fronts everything: `/admin`, `/api`, `/django-admin`, `/documents` go to Django; `/media` and `/static` are served from volumes; `/stats` goes to Umami; everything else goes to SvelteKit. Block definitions live in `backend/apps/pages/blocks.py` and their TypeScript mirror in `frontend/src/lib/api/types.ts`; keep them in sync.
+Headless Wagtail exposes pages and settings as JSON (`/api/v2/…`). SvelteKit renders pages on the server from that JSON and maps each block type to a component in `frontend/src/lib/blocks/`. Caddy fronts everything: `/admin`, `/api`, `/django-admin`, `/documents` go to Django; `/media` and `/static` are served from volumes; `/stats` goes to Umami; errors go to Bugsink on `ERRORS_DOMAIN`; everything else goes to SvelteKit. Block definitions live in `backend/apps/pages/blocks.py` and their TypeScript mirror in `frontend/src/lib/api/types.ts`; keep them in sync.

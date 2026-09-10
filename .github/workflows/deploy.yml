@@ -129,6 +129,8 @@ jobs:
             ${{ needs.prepare.outputs.image_prefix }}-${{ matrix.component }}:${{ inputs.environment }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,scope=${{ matrix.component }},mode=max
+          build-args: |
+            APP_RELEASE=${{ needs.prepare.outputs.tag }}
 
   deploy:
     needs: [build, prepare]
@@ -156,6 +158,9 @@ jobs:
           [ -n "${{ vars.STATS_DOMAIN }}" ] || missing="$missing STATS_DOMAIN"
           [ -n "${{ secrets.UMAMI_APP_SECRET }}" ] || missing="$missing UMAMI_APP_SECRET"
           [ -n "${{ secrets.UMAMI_TWO_FACTOR_KEY }}" ] || missing="$missing UMAMI_TWO_FACTOR_KEY"
+          [ -n "${{ vars.ERRORS_DOMAIN }}" ] || missing="$missing ERRORS_DOMAIN"
+          [ -n "${{ secrets.BUGSINK_SECRET_KEY }}" ] || missing="$missing BUGSINK_SECRET_KEY"
+          [ -n "${{ secrets.BUGSINK_ADMIN_PASSWORD }}" ] || missing="$missing BUGSINK_ADMIN_PASSWORD"
           [ -z "$missing" ] || { echo "Missing in GitHub Environment '${{ inputs.environment }}':$missing"; exit 1; }
 
       - name: Render server .env
@@ -166,6 +171,14 @@ jobs:
           PUBLIC_UMAMI_WEBSITE_ID=${{ vars.PUBLIC_UMAMI_WEBSITE_ID }}
           UMAMI_APP_SECRET=${{ secrets.UMAMI_APP_SECRET }}
           UMAMI_TWO_FACTOR_KEY=${{ secrets.UMAMI_TWO_FACTOR_KEY }}
+          ERRORS_DOMAIN=${{ vars.ERRORS_DOMAIN }}
+          BUGSINK_SECRET_KEY=${{ secrets.BUGSINK_SECRET_KEY }}
+          BUGSINK_ADMIN_EMAIL=${{ vars.BUGSINK_ADMIN_EMAIL }}
+          BUGSINK_ADMIN_PASSWORD=${{ secrets.BUGSINK_ADMIN_PASSWORD }}
+          SENTRY_ENVIRONMENT=${{ inputs.environment }}
+          SENTRY_DSN=${{ vars.SENTRY_DSN }}
+          SENTRY_DSN_FRONTEND=${{ vars.SENTRY_DSN_FRONTEND }}
+          PUBLIC_SENTRY_DSN=${{ vars.PUBLIC_SENTRY_DSN }}
           DEBUG=false
           DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
           POSTGRES_DB=${{ vars.POSTGRES_DB }}
@@ -214,11 +227,13 @@ jobs:
         run: |
           ssh target "set -euo pipefail
             cd '$DEPLOY_PATH'
-            docker compose pull --quiet backend frontend umami
+            docker compose pull --quiet backend frontend umami bugsink
             docker compose up -d --no-build --wait db
             # Volumes older than the analytics service get the umami database here (fresh ones via initdb)
             docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"' \
               < deploy/postgres-init/umami.sql
+            docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"' \
+              < deploy/postgres-init/bugsink.sql
             docker compose up -d --no-build --remove-orphans --wait --wait-timeout 300
             docker image prune -f >/dev/null
             docker compose ps"
@@ -240,3 +255,4 @@ jobs:
           probe "https://${{ vars.SITE_DOMAIN }}/"
           probe "https://${{ vars.SITE_DOMAIN }}/stats/api/heartbeat"
           probe "https://${{ vars.STATS_DOMAIN }}/api/heartbeat"
+          probe "https://${{ vars.ERRORS_DOMAIN }}/health/ready"
