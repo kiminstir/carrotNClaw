@@ -9,6 +9,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./deploy/postgres-init/umami.sql:/docker-entrypoint-initdb.d/10-umami.sql:ro
+      - ./deploy/postgres-init/bugsink.sql:/docker-entrypoint-initdb.d/11-bugsink.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -80,6 +81,36 @@ services:
       retries: 12
       start_period: 60s
 
+  bugsink:
+    image: bugsink/bugsink:2.5.1
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${BUGSINK_SECRET_KEY}
+      # First start only; later starts leave the existing user alone
+      CREATE_SUPERUSER: ${BUGSINK_ADMIN_EMAIL}:${BUGSINK_ADMIN_PASSWORD}
+      PORT: "8000"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/bugsink
+      BASE_URL: https://${ERRORS_DOMAIN}
+      BEHIND_HTTPS_PROXY: "true"
+      # Caddy sets X-Real-IP for this upstream (see Caddyfile)
+      USE_X_REAL_IP: "true"
+      SINGLE_TEAM: "true"
+      USER_REGISTRATION: CB_ADMINS
+      # Alerts go to Telegram (configured in the UI); no SMTP anywhere
+      EMAIL_BACKEND: django.core.mail.backends.dummy.EmailBackend
+      PHONEHOME: "false"
+      TIME_ZONE: Europe/Moscow
+    mem_limit: 350m
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import requests; requests.get(\"http://localhost:8000/health/ready\", timeout=5).raise_for_status()'"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
+
   caddy:
     image: caddy:2.11-alpine
     restart: unless-stopped
@@ -89,6 +120,7 @@ services:
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN}
       STATS_DOMAIN: ${STATS_DOMAIN}
+      ERRORS_DOMAIN: ${ERRORS_DOMAIN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -99,6 +131,7 @@ services:
       - backend
       - frontend
       - umami
+      - bugsink
 
 volumes:
   pgdata:

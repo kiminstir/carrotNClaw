@@ -47,3 +47,10 @@
 	encode zstd gzip
 	reverse_proxy umami:3000
 }
+
+{$ERRORS_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy bugsink:8000 {
+		header_up X-Real-IP {remote_host}
+	}
+}
