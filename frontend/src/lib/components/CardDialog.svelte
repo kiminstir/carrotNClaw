@@ -155,10 +155,13 @@
 		background: #0000003d;
 		border-radius: 3px 3px 0 0;
 	}
+	/* The cover slider is absolutely positioned, so the figure has to carry its own height or
+	   its grid row collapses to the margins and the photo lands on the text. Stacked, that is a
+	   3:4 portrait of the panel width (the panel fills the dialog minus its frame), capped so
+	   the title still starts on screen. */
 	.card-dialog-figure.fit-cover {
 		position: relative;
-		aspect-ratio: 3 / 4;
-		max-height: 55vh;
+		height: min(55vh, calc((100vw - 2 * var(--gutter) - 10px) * 4 / 3));
 	}
 	.card-dialog-body {
 		display: flex;
@@ -211,23 +214,37 @@
 	}
 	@media (min-width: 768px) {
 		/* The photo takes just under half the panel, capped so a 3:4 figure still fits the
-		   viewport height (minus the dialog gutters and the panel's inner frame). */
+		   viewport height (minus the dialog gutters and the panel's frame). The width is spelled
+		   out in viewport terms (the panel is the dialog's width up to 76rem) so the figure can
+		   derive its minimum height from it below; a percentage would not resolve there. */
 		.card-dialog-panel.has-image {
-			--figure-width: min(46%, calc((100vh - 2 * var(--gutter) - 8px) * 3 / 4));
+			--figure-width: min(
+				calc(0.46 * min(100vw - 2 * var(--gutter), 76rem)),
+				calc((100vh - 2 * var(--gutter) - 10px) * 3 / 4)
+			);
 			grid-template-columns: var(--figure-width) minmax(0, 1fr);
+			/* Side by side, the text column scrolls; the panel itself never does. */
+			overflow: hidden;
 		}
 		.card-dialog-figure {
-			--photo-max-height: calc(100vh - 2 * var(--gutter) - 8px);
+			--photo-max-height: calc(100vh - 2 * var(--gutter) - 10px);
 			margin: 4px 0 4px 4px;
 			align-self: stretch;
 			border-radius: 3px 0 0 3px;
 		}
-		/* Side by side, the 3:4 figure sets the panel height; longer text stretches it and the
-		   cover crop simply shows a little more of the photo. */
+		/* Side by side, the figure is a full-height column: at least a 3:4 portrait, taller when
+		   the text is (the cover crop then shows a little more of the photo). A stretched figure
+		   with an aspect ratio would grow wider instead and cover the text, so the portrait shape
+		   is a minimum height here, not a ratio. */
 		.card-dialog-figure.fit-cover {
-			max-height: none;
+			height: auto;
+			min-height: calc(var(--figure-width) * 4 / 3);
 		}
+		/* The text is capped at the panel's inner height and scrolls inside it, so long copy
+		   cannot stretch the panel past the viewport. */
 		.card-dialog-body {
+			max-height: calc(100vh - 2 * var(--gutter) - 2px);
+			overflow-y: auto;
 			padding: 2.75rem 3rem 3rem;
 		}
 		.card-dialog-header h2 {

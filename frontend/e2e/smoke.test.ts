@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 test('home renders CMS content', async ({ page }) => {
 	await page.goto('/');
@@ -248,4 +248,53 @@ test('staff pop-up slides through its photos without a filmstrip or lightbox', a
 
 	await page.keyboard.press('Escape');
 	await expect(dialog).toBeHidden();
+});
+
+test.describe('staff pop-up with a long description', () => {
+	// Inflate the open pop-up's copy well past the viewport height so the layout has to cope.
+	async function openWithLongCopy(page: Page) {
+		await page.goto('/staff/');
+		await page.locator('.card-open').first().click();
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toBeVisible();
+		// The panel slides in; measure only once it has settled.
+		await expect(dialog.locator('.card-dialog-panel')).toHaveCSS('transform', 'none');
+		await dialog.locator('.prose').evaluate((el) => {
+			el.innerHTML = Array.from(
+				{ length: 12 },
+				(_, i) => `<p>Paragraph ${i + 1}. ${'Knows every regular by name. '.repeat(12)}</p>`
+			).join('');
+		});
+		return dialog;
+	}
+
+	const box = (locator: Locator) => locator.evaluate((el) => el.getBoundingClientRect().toJSON());
+	const scrolls = (locator: Locator) =>
+		locator.evaluate((el) => el.scrollHeight > el.clientHeight + 1);
+
+	test('side by side, the photo keeps its column and only the text scrolls', async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 720 });
+		const dialog = await openWithLongCopy(page);
+		const panel = await box(dialog.locator('.card-dialog-panel'));
+		const figure = await box(dialog.locator('.card-dialog-figure'));
+		const body = await box(dialog.locator('.card-dialog-body'));
+
+		expect(figure.right).toBeLessThanOrEqual(body.left + 1);
+		expect(figure.bottom).toBeLessThanOrEqual(panel.bottom + 1);
+		expect(panel.height).toBeLessThanOrEqual(720);
+		expect(await scrolls(dialog.locator('.card-dialog-body'))).toBe(true);
+		expect(await scrolls(dialog.locator('.card-dialog-panel'))).toBe(false);
+		await expect(dialog.getByRole('heading', { level: 2 })).toBeInViewport();
+	});
+
+	test('stacked, the text starts below the photo and the panel scrolls', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 800 });
+		const dialog = await openWithLongCopy(page);
+		const figure = await box(dialog.locator('.card-dialog-figure'));
+		const body = await box(dialog.locator('.card-dialog-body'));
+
+		expect(body.top).toBeGreaterThanOrEqual(figure.bottom - 1);
+		expect(await scrolls(dialog.locator('.card-dialog-panel'))).toBe(true);
+		await expect(dialog.getByRole('heading', { level: 2 })).toBeInViewport();
+	});
 });
