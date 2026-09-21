@@ -1,5 +1,34 @@
 import type { ApiImage, Card } from '$lib/api/types';
 
+const GIL_SUFFIX = /\s+gil\.?$/i;
+const GROUPED_INTEGER = /^([+-]?)(\d{1,3})(?:[\s,.'’_](\d{3}))+$/;
+const PLAIN_INTEGER = /^([+-]?)(\d+)$/;
+
+/**
+ * Prices are editable strings in Wagtail, but numeric values still need consistent menu
+ * typography. A narrow no-break space groups thousands and keeps the amount together; a Gil
+ * suffix entered by an editor is removed because the UI supplies the currency separately.
+ * Non-numeric legacy values are preserved rather than guessed at.
+ */
+export function formatGilAmount(value: string): string {
+	const amount = value.trim().replace(GIL_SUFFIX, '').trim();
+	if (!amount) return '';
+
+	const plain = amount.match(PLAIN_INTEGER);
+	if (plain) return `${plain[1]}${groupDigits(plain[2])}`;
+
+	const grouped = amount.match(GROUPED_INTEGER);
+	if (grouped) {
+		return `${grouped[1]}${groupDigits(amount.replace(/^[+-]/, '').replace(/[^\d]/g, ''))}`;
+	}
+
+	return amount;
+}
+
+function groupDigits(digits: string): string {
+	return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+}
+
 // Card images are cropped with `object-fit: cover`; the editor's focal point decides which part
 // of the image stays in view. Without one the browser default (centre) applies.
 export function focalPositionStyle(image: ApiImage): string {

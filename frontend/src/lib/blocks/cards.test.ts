@@ -4,9 +4,29 @@ import {
 	PORTRAIT_ASPECT,
 	coverSizes,
 	focalPositionStyle,
+	formatGilAmount,
 	hasDescription,
 	popupImages
 } from './cards';
+
+describe('formatGilAmount', () => {
+	it('groups integer prices with narrow non-breaking spaces', () => {
+		expect(formatGilAmount('950')).toBe('950');
+		expect(formatGilAmount('1500')).toBe('1\u202f500');
+		expect(formatGilAmount('1234567')).toBe('1\u202f234\u202f567');
+	});
+
+	it('normalizes existing grouping and removes an editor-entered currency suffix', () => {
+		expect(formatGilAmount('1 500')).toBe('1\u202f500');
+		expect(formatGilAmount('1,500 Gil')).toBe('1\u202f500');
+		expect(formatGilAmount('2500 gil.')).toBe('2\u202f500');
+	});
+
+	it('preserves non-numeric legacy values instead of guessing', () => {
+		expect(formatGilAmount('4 silver')).toBe('4 silver');
+		expect(formatGilAmount('')).toBe('');
+	});
+});
 
 function image(overrides: Partial<ApiImage> = {}): ApiImage {
 	return {

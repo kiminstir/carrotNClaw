@@ -599,8 +599,7 @@ p {
 .card-portrait > .card-content p {
 	line-height: 1.5;
 }
-.card-portrait .card-link,
-.card-portrait .card-more {
+.card-portrait .card-footer {
 	padding-top: 0.9rem;
 }
 /* A card with a description opens a pop-up: the title button's hit area covers the card. */
@@ -646,8 +645,6 @@ p {
 	}
 }
 .card-more {
-	margin-top: auto;
-	padding-top: 1.2rem;
 	font-size: 0.8rem;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
@@ -755,6 +752,7 @@ body:has(dialog[open]) {
 	padding: 2.5rem 2.25rem;
 }
 .card-content h3 {
+	min-width: 0;
 	font-family: var(--font-display);
 	font-size: 1.6rem;
 	line-height: 1.2;
@@ -763,18 +761,51 @@ body:has(dialog[open]) {
 .card-content p {
 	line-height: 1.7;
 }
+.card-footer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.9rem;
+	margin-top: auto;
+	padding-top: 1.2rem;
+}
+.card-price-row {
+	display: flex;
+	width: 100%;
+	align-items: baseline;
+	gap: 0.65rem;
+}
+.card-price-leader {
+	flex: 1 1 1.5rem;
+	min-width: 0.75rem;
+	border-bottom: 1px dotted color-mix(in srgb, var(--color-accent) 42%, transparent);
+	transform: translateY(-0.24rem);
+}
 .card-price {
 	flex-shrink: 0;
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.32em;
+	white-space: nowrap;
+	font-variant-numeric: lining-nums tabular-nums;
+}
+.card-price-amount {
 	color: var(--color-accent);
-	font-size: 0.85rem;
-	font-weight: 600;
+	font-family: var(--font-display);
+	font-size: 1.1rem;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+}
+.card-price-currency {
+	color: var(--color-muted);
+	font-size: 0.68rem;
+	font-weight: 650;
+	letter-spacing: 0.08em;
 }
 .card-link {
 	position: relative; /* above the .card-open overlay, so the link still takes the click */
 	z-index: 2;
 	align-self: flex-start;
-	margin-top: auto;
-	padding-top: 1.2rem;
 	font-size: 0.9rem;
 	text-decoration: underline;
 	text-underline-offset: 5px;

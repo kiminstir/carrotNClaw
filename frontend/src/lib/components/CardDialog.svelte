@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ApiImage } from '$lib/api/types';
 	import DialogSlider from './DialogSlider.svelte';
+	import CardPrice from './CardPrice.svelte';
 
 	// Detail pop-up for a card, built on the native <dialog> like Lightbox: the top layer escapes
 	// ancestor transforms, Escape closes it, focus is trapped while open and restored on close.
@@ -79,7 +80,10 @@
 		<div class="card-dialog-body">
 			<header class="card-dialog-header">
 				<h2 id="{id}-title">{title}</h2>
-				{#if price}<span class="card-price">{price}</span>{/if}
+				{#if price}
+					<span class="card-dialog-price-rule" aria-hidden="true"></span>
+					<CardPrice value={price} />
+				{/if}
 			</header>
 			{#if subtitle}<p class="card-dialog-subtitle">{subtitle}</p>{/if}
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -170,10 +174,17 @@
 		padding-right: 2.5rem;
 	}
 	.card-dialog-header h2 {
+		min-width: 0;
 		font-family: var(--font-display);
 		font-size: clamp(1.6rem, 3vw, 2.1rem);
 		line-height: 1.15;
 		letter-spacing: -0.025em;
+	}
+	.card-dialog-price-rule {
+		flex: 1 1 1.5rem;
+		min-width: 0.75rem;
+		border-bottom: 1px dotted color-mix(in srgb, var(--color-accent) 42%, transparent);
+		transform: translateY(-0.24rem);
 	}
 	.card-dialog-subtitle {
 		margin-top: -0.35rem;

@@ -3,6 +3,7 @@
 	import Picture from '$lib/components/Picture.svelte';
 	import Branch from '$lib/components/Branch.svelte';
 	import CardDialog from '$lib/components/CardDialog.svelte';
+	import CardPrice from '$lib/components/CardPrice.svelte';
 	import { track } from '$lib/analytics';
 	import {
 		PORTRAIT_ASPECT,
@@ -66,37 +67,44 @@
 				{/if}
 			{/if}
 			<div class="card-content">
-				<div class="flex items-baseline justify-between gap-2">
-					<h3>
-						{#if interactive}
-							<!-- The button's ::after stretches over the whole card, so any click opens the
-							     pop-up; the card link keeps its own stacking level and still works. -->
-							<button
-								type="button"
-								class="card-open"
-								aria-haspopup="dialog"
-								aria-controls={dialogId}
-								onclick={() => openCard(i)}>{card.title}</button
-							>
-						{:else}
-							{card.title}
-						{/if}
-					</h3>
-					{#if card.price}<span class="card-price">{card.price}</span>{/if}
-				</div>
+				<h3>
+					{#if interactive}
+						<!-- The button's ::after stretches over the whole card, so any click opens the
+						     pop-up; the card link keeps its own stacking level and still works. -->
+						<button
+							type="button"
+							class="card-open"
+							aria-haspopup="dialog"
+							aria-controls={dialogId}
+							onclick={() => openCard(i)}>{card.title}</button
+						>
+					{:else}
+						{card.title}
+					{/if}
+				</h3>
 				{#if card.subtitle}<p class="text-sm text-muted">{card.subtitle}</p>{/if}
 				{#if card.text}<p class="mt-2 text-sm">{card.text}</p>{/if}
-				{#if card.link}
-					<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from CMS data, not a typed route -->
-					<a
-						href={card.link.href}
-						target={card.link.external ? '_blank' : undefined}
-						rel={card.link.external ? 'noopener' : undefined}
-						class="card-link">{card.link.label}</a
-					>
-					<!-- eslint-enable svelte/no-navigation-without-resolve -->
-				{:else if interactive}
-					<span class="card-more" aria-hidden="true">Read more</span>
+				{#if card.link || interactive || card.price}
+					<footer class="card-footer">
+						{#if card.link}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from CMS data, not a typed route -->
+							<a
+								href={card.link.href}
+								target={card.link.external ? '_blank' : undefined}
+								rel={card.link.external ? 'noopener' : undefined}
+								class="card-link">{card.link.label}</a
+							>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
+						{:else if interactive}
+							<span class="card-more" aria-hidden="true">Read more</span>
+						{/if}
+						{#if card.price}
+							<div class="card-price-row">
+								<span class="card-price-leader" aria-hidden="true"></span>
+								<CardPrice value={card.price} />
+							</div>
+						{/if}
+					</footer>
 				{/if}
 			</div>
 		</article>
