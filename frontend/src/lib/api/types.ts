@@ -1,12 +1,21 @@
-export interface ApiImage {
-	id: number;
-	alt: string;
+/** One picture at several widths: the largest rendition plus the srcset candidates. */
+export interface ImageSource {
 	src: string;
 	width: number;
 	height: number;
 	srcset: { url: string; width: number }[];
-	/** Centre of the editor-set focal point, in percent of the image; null when none is set. */
-	focal_point: { x: number; y: number } | null;
+}
+
+export interface ApiImage extends ImageSource {
+	id: number;
+	alt: string;
+}
+
+/** A card photo. `portrait` is the same image cropped by Wagtail to a 3:4 box that holds the
+ *  editor-set focal point rectangle, centred on it (the middle of the image when none is set);
+ *  the Photo card style and its pop-up render that instead of the whole image. */
+export interface CardImage extends ApiImage {
+	portrait: ImageSource;
 }
 
 export interface ApiLink {
@@ -56,7 +65,7 @@ export interface VideoValue {
 }
 
 export interface Card {
-	image: ApiImage | null;
+	image: CardImage | null;
 	title: string;
 	subtitle: string;
 	text: string;
@@ -65,7 +74,7 @@ export interface Card {
 	/** Rich text HTML; when non-empty the card opens a pop-up showing it. */
 	description: string;
 	/** Shown in the pop-up instead of `image` (several make a slider); never rendered without a description. */
-	detail_images: ApiImage[];
+	detail_images: CardImage[];
 }
 
 export interface CardGridValue {

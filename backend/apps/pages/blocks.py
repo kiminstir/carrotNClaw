@@ -64,6 +64,10 @@ class StyledRichTextBlock(blocks.StructBlock):
 class ApiImageBlock(ImageBlock):
     """Image + alt text whose API output is ready for an <img srcset>."""
 
+    # Set on blocks whose image fills a portrait box: the API then also carries the 3:4 crop
+    # to the focal point (`portrait`, see apps/pages/images.py).
+    portrait = False
+
     def get_api_representation(self, value, context=None):
         if value is None:
             return None
@@ -71,7 +75,13 @@ class ApiImageBlock(ImageBlock):
             alt = ""
         else:
             alt = getattr(value, "contextual_alt_text", None) or value.default_alt_text
-        return serialize_image(value, alt=alt)
+        return serialize_image(value, alt=alt, portrait=self.portrait)
+
+
+class CardImageBlock(ApiImageBlock):
+    """Card photo: the Photo style shows its `portrait` crop, the Artwork style the image whole."""
+
+    portrait = True
 
 
 class LinkBlock(blocks.StructBlock):
@@ -170,10 +180,11 @@ CARD_DESCRIPTION_FEATURES = [f for f in RICH_TEXT_FEATURES if f != "image"]
 
 
 class CardBlock(blocks.StructBlock):
-    image = ApiImageBlock(
+    image = CardImageBlock(
         required=False,
-        help_text="In the Photo style the image is cropped to the card; set a focal point on "
-        "the image to choose which part stays in view.",
+        help_text="In the Photo style the card shows exactly the image's focal point box, "
+        "widened to 3:4 and centred on it; draw the box generously, it is the whole picture. "
+        "Without one the middle of the image is shown.",
     )
     title = blocks.CharBlock(max_length=120)
     subtitle = blocks.CharBlock(required=False, max_length=120)
@@ -186,13 +197,14 @@ class CardBlock(blocks.StructBlock):
         help_text="When filled in, the card opens a pop-up with this text and the image.",
     )
     detail_images = blocks.ListBlock(
-        ApiImageBlock(),
+        CardImageBlock(),
         required=False,
         default=[],
         max_num=10,
         label="Pop-up photos",
         help_text="Shown in the pop-up instead of the card image; several photos become a "
-        "slider. Only visible when a description is set.",
+        "slider. Only visible when a description is set. In the Photo style each one is "
+        "cropped to its focal point box like the card image.",
     )
 
     def get_api_representation(self, value, context=None):
@@ -214,8 +226,8 @@ class CardGridBlock(blocks.StructBlock):
     style = blocks.ChoiceBlock(
         choices=CARD_STYLE_CHOICES,
         default="artwork",
-        help_text="Artwork shows cut-out images whole; Photo crops the image to a portrait "
-        "card around its focal point.",
+        help_text="Artwork shows cut-out images whole; Photo fills a portrait card with the "
+        "image's focal point box.",
     )
     cards = blocks.ListBlock(CardBlock())
 

@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ApiImage } from '$lib/api/types';
-import {
-	PORTRAIT_ASPECT,
-	coverSizes,
-	focalPositionStyle,
-	formatGilAmount,
-	hasDescription,
-	popupImages
-} from './cards';
+import type { CardImage } from '$lib/api/types';
+import { formatGilAmount, hasDescription, popupImages, portraitImage } from './cards';
 
 describe('formatGilAmount', () => {
 	it('groups integer prices with narrow non-breaking spaces', () => {
@@ -28,53 +21,34 @@ describe('formatGilAmount', () => {
 	});
 });
 
-function image(overrides: Partial<ApiImage> = {}): ApiImage {
+function image(overrides: Partial<CardImage> = {}): CardImage {
 	return {
 		id: 1,
 		alt: '',
 		src: 'a.webp',
-		width: 100,
-		height: 100,
-		srcset: [],
-		focal_point: null,
+		width: 1200,
+		height: 800,
+		srcset: [{ url: 'a-480.webp', width: 480 }],
+		portrait: {
+			src: 'a-portrait.webp',
+			width: 240,
+			height: 320,
+			srcset: [{ url: 'a-portrait.webp', width: 240 }]
+		},
 		...overrides
 	};
 }
 
-describe('focalPositionStyle', () => {
-	it('is empty without a focal point so the browser centres the crop', () => {
-		expect(focalPositionStyle(image())).toBe('');
-	});
-
-	it('turns the focal point into object-position percentages', () => {
-		expect(focalPositionStyle(image({ focal_point: { x: 50.3, y: 12 } }))).toBe(
-			'object-position: 50.3% 12%'
-		);
-	});
-
-	it('clamps out-of-range values', () => {
-		expect(focalPositionStyle(image({ focal_point: { x: -4, y: 120 } }))).toBe(
-			'object-position: 0% 100%'
-		);
-	});
-});
-
-describe('coverSizes', () => {
-	const landscape = image({ width: 2560, height: 1440 });
-
-	it('widens every candidate by the aspect ratio gap when the photo is wider than the box', () => {
-		expect(coverSizes('(min-width: 768px) 24rem, 100vw', landscape, PORTRAIT_ASPECT)).toBe(
-			'(min-width: 768px) calc(24rem * 2.37), calc(100vw * 2.37)'
-		);
-	});
-
-	it('leaves sizes alone when the photo is as tall as or taller than the box', () => {
-		expect(coverSizes('33vw', image({ width: 600, height: 800 }), PORTRAIT_ASPECT)).toBe('33vw');
-		expect(coverSizes('33vw', image({ width: 900, height: 1600 }), PORTRAIT_ASPECT)).toBe('33vw');
-	});
-
-	it('leaves sizes alone without usable dimensions', () => {
-		expect(coverSizes('33vw', image({ width: 0, height: 0 }), PORTRAIT_ASPECT)).toBe('33vw');
+describe('portraitImage', () => {
+	it('swaps the focal point crop in for the whole image and keeps the identity and alt', () => {
+		expect(portraitImage(image({ alt: 'The cook' }))).toEqual({
+			id: 1,
+			alt: 'The cook',
+			src: 'a-portrait.webp',
+			width: 240,
+			height: 320,
+			srcset: [{ url: 'a-portrait.webp', width: 240 }]
+		});
 	});
 });
 

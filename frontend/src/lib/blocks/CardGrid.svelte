@@ -5,13 +5,7 @@
 	import CardDialog from '$lib/components/CardDialog.svelte';
 	import CardPrice from '$lib/components/CardPrice.svelte';
 	import { track } from '$lib/analytics';
-	import {
-		PORTRAIT_ASPECT,
-		coverSizes,
-		focalPositionStyle,
-		hasDescription,
-		popupImages
-	} from './cards';
+	import { hasDescription, popupImages, portraitImage } from './cards';
 
 	let { value, id }: { value: CardGridValue; id: string } = $props();
 	const cols = $derived(
@@ -50,15 +44,10 @@
 			{:else if i === value.cards.length - 1}<Branch kind="willow" corner="bottom-right" />{/if}
 			{#if card.image}
 				{#if portrait}
-					<!-- The photo fills the whole card; the focal point set in the admin decides which
-					     part the cover crop keeps in view. The text sits over the bottom band. -->
+					<!-- The card is filled by the photo's 3:4 crop to its focal point, made by Wagtail,
+					     so what the editor marked is exactly what shows. The text sits over the bottom band. -->
 					<figure class="card-figure">
-						<Picture
-							image={card.image}
-							sizes={coverSizes(sizes, card.image, PORTRAIT_ASPECT)}
-							class="card-art"
-							style={focalPositionStyle(card.image)}
-						/>
+						<Picture image={portraitImage(card.image)} {sizes} class="card-art" />
 					</figure>
 				{:else}
 					<!-- Card images are cut-out artwork on a transparent background (menu dishes, drinks),

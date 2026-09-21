@@ -580,7 +580,9 @@ p {
 	inset: 0;
 	width: 100%;
 	height: 100%;
-	object-fit: cover; /* object-position comes from the image's focal point (cards.ts) */
+	/* The photo is Wagtail's 3:4 crop to its focal point (cards.ts portraitImage), so the box
+	   shows exactly that; cover only absorbs a pixel of rounding. */
+	object-fit: cover;
 }
 .card-portrait > .card-content {
 	z-index: 1;

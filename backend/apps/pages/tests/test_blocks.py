@@ -238,12 +238,14 @@ def test_card_block_api_representation_with_details():
     )
     data = block.get_api_representation(value)
     assert data["image"]["alt"] == "The cook"
-    assert data["image"]["focal_point"] is None
+    # Card photos carry the 3:4 focal crop for the Photo style; a 600x800 source is one already.
+    assert (data["image"]["portrait"]["width"], data["image"]["portrait"]["height"]) == (600, 800)
     assert data["description"] == "<p>Long story</p>"
     assert [(i["id"], i["alt"]) for i in data["detail_images"]] == [
         (portrait.pk, ""),
         (portrait.pk, "At work"),
     ]
+    assert all("portrait" in i for i in data["detail_images"])
     assert data["link"] is None
     assert "detail_image" not in data
 

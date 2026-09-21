@@ -1,4 +1,4 @@
-import type { ApiImage, Card } from '$lib/api/types';
+import type { ApiImage, Card, CardImage } from '$lib/api/types';
 
 const GIL_SUFFIX = /\s+gil\.?$/i;
 const GROUPED_INTEGER = /^([+-]?)(\d{1,3})(?:[\s,.'’_](\d{3}))+$/;
@@ -29,40 +29,12 @@ function groupDigits(digits: string): string {
 	return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
 }
 
-// Card images are cropped with `object-fit: cover`; the editor's focal point decides which part
-// of the image stays in view. Without one the browser default (centre) applies.
-export function focalPositionStyle(image: ApiImage): string {
-	const point = image.focal_point;
-	if (!point) return '';
-	return `object-position: ${clampPercent(point.x)}% ${clampPercent(point.y)}%`;
-}
-
-function clampPercent(value: number): number {
-	return Math.min(100, Math.max(0, Math.round(value * 10) / 10));
-}
-
-// Aspect ratio (width / height) of the portrait boxes a cover-cropped photo fills.
-export const PORTRAIT_ASPECT = 3 / 4;
-
-// `sizes` tells the browser how wide the <img> box is, but a cover-cropped photo wider than its
-// box is scaled by height, so the rendered image is wider than the box by the ratio of the two
-// aspects. Without this the browser fetches a rendition sized for the box and the visible slice
-// of it ends up upscaled and blurry. Each candidate's length is wrapped in calc(); the media
-// condition, if any, is kept.
-export function coverSizes(sizes: string, image: ApiImage, boxAspect: number): string {
-	if (!image.width || !image.height) return sizes;
-	const scale = Math.round((image.width / image.height / boxAspect) * 100) / 100;
-	if (scale <= 1) return sizes;
-	return sizes
-		.split(',')
-		.map((candidate) => {
-			const trimmed = candidate.trim();
-			const split = trimmed.lastIndexOf(' ');
-			const condition = split === -1 ? '' : trimmed.slice(0, split + 1);
-			const length = split === -1 ? trimmed : trimmed.slice(split + 1);
-			return `${condition}calc(${length} * ${scale})`;
-		})
-		.join(', ');
+// The Photo style fills a 3:4 box with the photo's `portrait` renditions: Wagtail has already
+// cropped them to the focal point (backend/apps/pages/image_operations.py), so the box shows
+// exactly the marked area, zoomed in as far as the focal rectangle asks. Swapping the renditions
+// into an ApiImage keeps Picture's srcset handling, and `sizes` can describe the box itself.
+export function portraitImage(image: CardImage): ApiImage {
+	return { id: image.id, alt: image.alt, ...image.portrait };
 }
 
 // Draftail may save an empty paragraph rather than an empty string, so tags alone do not count
@@ -82,7 +54,7 @@ export function hasDescription(card: Pick<Card, 'description'>): boolean {
 }
 
 // The pop-up prefers the dedicated photos and falls back to the card's own image.
-export function popupImages(card: Pick<Card, 'image' | 'detail_images'>): ApiImage[] {
+export function popupImages(card: Pick<Card, 'image' | 'detail_images'>): CardImage[] {
 	if (card.detail_images.length) return card.detail_images;
 	return card.image ? [card.image] : [];
 }

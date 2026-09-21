@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ApiImage } from '$lib/api/types';
+	import type { CardImage } from '$lib/api/types';
 	import DialogSlider from './DialogSlider.svelte';
 	import CardPrice from './CardPrice.svelte';
 
@@ -24,8 +24,8 @@
 		price?: string;
 		description: string;
 		/** Several photos become a slider; one is shown as a plain figure. */
-		images?: ApiImage[];
-		/** cover: 3:4 portrait crop around the focal point (photos); contain: shown whole (artwork). */
+		images?: CardImage[];
+		/** cover: the 3:4 crop to the focal point fills the box (photos); contain: shown whole (artwork). */
 		imageFit?: 'cover' | 'contain';
 		open?: boolean;
 		onclose: () => void;

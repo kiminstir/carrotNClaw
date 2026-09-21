@@ -28,18 +28,26 @@ def test_serialize_image_returns_srcset_and_dimensions(image):
     assert data["width"] == 1200 and data["height"] == 800
 
 
-def test_serialize_image_without_focal_point(image):
-    assert serialize_image(image, alt="x")["focal_point"] is None
+def test_serialize_image_has_no_portrait_crop_by_default(image):
+    assert "portrait" not in serialize_image(image, alt="x")
 
 
-def test_serialize_image_focal_point_as_percentages(image):
-    # Rect(left, top, right, bottom) in source pixels on a 1200x800 image.
-    image.set_focal_point(Rect(300, 100, 900, 700))
-    image.save()
-    assert serialize_image(image, alt="x")["focal_point"] == {"x": 50.0, "y": 50.0}
+def test_serialize_image_portrait_crop_without_focal_point_is_the_centred_3_4_box(image):
+    portrait = serialize_image(image, alt="x", portrait=True)["portrait"]
+    # 800px tall gives at most a 600x800 crop, so 960 and up collapse into that step.
+    assert [s["width"] for s in portrait["srcset"]] == [480, 600]
+    assert (portrait["width"], portrait["height"]) == (600, 800)
+    assert portrait["src"].startswith("http://testserver/media/")
+    assert portrait["src"].endswith(".webp")
+
+
+def test_serialize_image_portrait_crop_is_capped_at_the_focal_point_size(image):
+    # Rect(left, top, right, bottom) in source pixels: a 240x160 corner becomes a 240x320 crop.
     image.set_focal_point(Rect(0, 0, 240, 160))
     image.save()
-    assert serialize_image(image, alt="x")["focal_point"] == {"x": 10.0, "y": 10.0}
+    portrait = serialize_image(image, alt="x", portrait=True)["portrait"]
+    assert [s["width"] for s in portrait["srcset"]] == [240]
+    assert (portrait["width"], portrait["height"]) == (240, 320)
 
 
 def test_serialize_image_none():

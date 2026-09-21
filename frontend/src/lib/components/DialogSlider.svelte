@@ -2,9 +2,9 @@
 	import emblaCarouselSvelte from 'embla-carousel-svelte';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import type { EmblaCarouselType } from 'embla-carousel';
-	import type { ApiImage } from '$lib/api/types';
+	import type { ApiImage, CardImage } from '$lib/api/types';
 	import Picture from './Picture.svelte';
-	import { PORTRAIT_ASPECT, coverSizes, focalPositionStyle } from '$lib/blocks/cards';
+	import { portraitImage } from '$lib/blocks/cards';
 	import { track } from '$lib/analytics';
 
 	// Photo slider for the card pop-up: swipe or drag, side arrows, arrow keys while an arrow has
@@ -16,10 +16,10 @@
 		fit,
 		sizes
 	}: {
-		images: ApiImage[];
-		/** cover: 3:4 portrait crop around the focal point (photos); contain: shown whole (artwork). */
+		images: CardImage[];
+		/** cover: the 3:4 crop to the focal point fills the box (photos); contain: shown whole (artwork). */
 		fit: 'cover' | 'contain';
-		/** `sizes` of the box the photos fill; widened per photo for cover crops. */
+		/** `sizes` of the box the photos fill. */
 		sizes: string;
 	} = $props();
 	const many = $derived(images.length > 1);
@@ -27,12 +27,8 @@
 	let embla: EmblaCarouselType | undefined = $state();
 	let selected = $state(0);
 
-	function imageSizes(image: ApiImage): string {
-		return fit === 'cover' ? coverSizes(sizes, image, PORTRAIT_ASPECT) : sizes;
-	}
-
-	function imageStyle(image: ApiImage): string {
-		return fit === 'cover' ? focalPositionStyle(image) : '';
+	function shown(image: CardImage): ApiImage {
+		return fit === 'cover' ? portraitImage(image) : image;
 	}
 
 	function onInit(event: CustomEvent<EmblaCarouselType>) {
@@ -68,12 +64,7 @@
 				{#each images as image, i (i)}
 					<div class="slider-slide">
 						<!-- Hidden dialogs are display:none, so the lazy images only load once opened. -->
-						<Picture
-							{image}
-							sizes={imageSizes(image)}
-							class="dialog-slider-image"
-							style={imageStyle(image)}
-						/>
+						<Picture image={shown(image)} {sizes} class="dialog-slider-image" />
 					</div>
 				{/each}
 			</div>
@@ -125,12 +116,7 @@
 	</div>
 {:else if images[0]}
 	<div class="dialog-slider fit-{fit}">
-		<Picture
-			image={images[0]}
-			sizes={imageSizes(images[0])}
-			class="dialog-slider-image"
-			style={imageStyle(images[0])}
-		/>
+		<Picture image={shown(images[0])} {sizes} class="dialog-slider-image" />
 	</div>
 {/if}
 
@@ -153,7 +139,7 @@
 		display: grid;
 		place-items: center;
 	}
-	/* Artwork is shown whole; a photo gets a portrait crop that keeps the focal point in view. */
+	/* Artwork is shown whole; a photo is its 3:4 crop to the focal point, filling the box. */
 	.dialog-slider :global(.dialog-slider-image) {
 		display: block;
 		width: 100%;
@@ -174,7 +160,9 @@
 		inset: 0;
 		height: 100%;
 		max-height: none;
-		object-fit: cover; /* object-position comes from the image's focal point */
+		/* The rendition is already 3:4; cover only absorbs rounding and a figure grown taller
+		   than 3:4 beside long text (CardDialog.svelte), trimming the crop's sides evenly. */
+		object-fit: cover;
 	}
 	.slider-arrow {
 		position: absolute;
